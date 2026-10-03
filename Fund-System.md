@@ -85,3 +85,10 @@ flowchart TD
 - **Unit Investment Trusts** → Static investment baskets
 - **Census & Operations** → Fund operations, census, and shareholder reporting
 
+
+## Fund v/s Share Class v/s Benchmark in SEC/EDGAR ```N-1A Form``` Filings
+|Entity:|What It Is:|SEC Identifier:|Key Characteristic:|
+|-------|-----------|---------------|-------------------|
+|Fund (Series)|"The distinct pooled investment vehicle that holds the actual basket of securities (stocks, bonds, cash). All classes share the same manager, portfolio, and strategy."|series_id (S0000xxxxx)|"Investment objective| strategy narrative, total portfolio value."|
+|Share Class (Contract)|"A specific ownership slice of the fund tailored to different investor types. Each class has distinct fee structures, minimum investments, tickers, and expense ratios."|class_id (C0000xxxxx)|"Ticker symbol, 12b-1 fees, gross/net expense ratios, load waivers."|
+|Comparative Market Index|"An external, unmanaged benchmark against which the fund's performance is measured under SEC Item 4 regulatory disclosure rules."|Dimensional Axis Member (measure)|"Not owned by the fund; reflects no deduction for fees, expenses, or taxes (e.g., Russell 2000, S&P 500)."|

@@ -531,6 +531,7 @@ Sub Asset Class
 Benchmark
 Strategy Type
 Reporting Date
+(Check the section - What Information Can We Extract and Show on the UI)
 ```
 
 ---
@@ -862,3 +863,191 @@ These attributes rarely change mid-year unless the fund files a material prospec
 **Open-End Mutual Funds:** Traditional retail/institutional share-class mutual funds (e.g., Vanguard 500 Index Admiral, Fidelity Contrafund).
 **Open-End ETFs (Exchange-Traded Funds):** ETFs registered under the Investment Company Act of 1940 on Form N-1A (e.g., SPDR SPY is a UIT, but Vanguard VOO or iShares IVV file on Form N-1A).
 These are not Closed-End Funds (CEFs file Form N-2) or Money Market Funds reporting daily shadow NAVs (Form N-MFP).
+
+
+Here is the architectural plan and roadmap section to append to **`Funds-Roadmap.md`**.
+
+---
+
+## Page-2: What Information Can We Extract and Show on the UI?
+
+When `class IS NULL AND measure IS NULL` in `sec_financials.numeric_facts`, the SEC is giving you **fund-level core truth** that is unpolluted by share-class fee variations:
+
+1. **Fund-Level Fee Baseline:**
+* **Management Fee Rate (`ManagementFeesOverAssets`)**: Shows the base advisory fee the portfolio manager charges, irrespective of 12b-1 retail distribution cuts.
+* **Gross Expense Ratio (`ExpensesOverAssets`)**: Directly populates the baseline operating cost for single-class funds or ETFs.
+
+
+2. **Historical Performance Volatility (Quarterly Extremes):**
+* **Best Quarter (`BarChartHighestQuarterlyReturn`)**: The highest calendar-quarter return (e.g., `+23.4% in Q2 2020`).
+* **Worst Quarter (`BarChartLowestQuarterlyReturn`)**: The lowest calendar-quarter return (e.g., `-18.2% in Q1 2020`).
+* These provide **instant downside/upside risk context** without having to calculate daily prices from scratch.
+
+
+3. **Calendar Year Historical Return Trajectory (`AnnlRtrPct`):**
+* Produces the official 10-year historical annual returns bar chart mandated by SEC Item 4(b)(2).
+
+
+4. **Projected Hypothetical Cost Simulation (`ExpenseExampleYear01` through `Year10`):**
+* Shows the standardized SEC cost to hold the fund on a $10,000 investment over 1, 3, 5, and 10 years.
+
+
+
+---
+
+### UI Page Addition: Fund Overview & Fee Breakdown Tabs
+
+On **Page 2 (Fund Overview)** or a new dedicated **"Fees & Performance History"** tab:
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Vanguard 500 Index Fund (Series: S000006037)                            │
+│  [Passive / Index]  •  Benchmark: S&P 500 Index  •  Cadence: Annual      │
+├──────────────────────────────────────────────────────────────────────────┤
+│  FUND-LEVEL EXPENSE BASELINE                                             │
+│  Management Fee: 0.03%  |  Net Baseline Expense: 0.04%                   │
+│  Cost on $10k (1-Yr): $4 | (3-Yr): $13 | (5-Yr): $23 | (10-Yr): $51      │
+├──────────────────────────────────────────────────────────────────────────┤
+│  HISTORICAL EXTREMES & VOLATILITY RANGE (Form N-1A Bar Chart)            │
+│  ▲ Best Quarter:   +20.54% (Q2 2020)                                     │
+│  ▼ Worst Quarter:  -19.60% (Q1 2020)                                     │
+│  Historical Trajectory: [ 2016: 11.9% | 2017: 21.8% | ... | 2024: 25.0% ]│
+└──────────────────────────────────────────────────────────────────────────┘
+
+```
+
+---
+
+### Markdown to Append to `Funds-Roadmap.md`
+
+Append this block directly to the end of your `Funds-Roadmap.md` file:
+
+```markdown
+---
+
+# Milestone-2: Fund-Level Baseline Metrics & Performance Extremes Engine
+
+## 1. Context & Business Value
+Rows in `sec_financials.numeric_facts` where both `class IS NULL` and `measure IS NULL` capture **Series-Level Default Disclosures** without share-class dimensional noise. Ingesting these provides essential master-level fee baselines, expense projections, and historical volatility extremes (best/worst quarters and calendar-year bar chart returns) required under SEC Form N-1A Item 4(b)(2).
+
+---
+
+## 2. Target Schema Additions
+
+### Table Enhancement: `analytics.fund_master`
+```sql
+ALTER TABLE analytics.fund_master
+    ADD COLUMN IF NOT EXISTS management_fee_pct       NUMERIC(6, 4),
+    ADD COLUMN IF NOT EXISTS net_expense_ratio        NUMERIC(6, 4),
+    ADD COLUMN IF NOT EXISTS best_quarter_return      NUMERIC(6, 4),
+    ADD COLUMN IF NOT EXISTS best_quarter_period      VARCHAR(10),
+    ADD COLUMN IF NOT EXISTS worst_quarter_return     NUMERIC(6, 4),
+    ADD COLUMN IF NOT EXISTS worst_quarter_period     VARCHAR(10);
+
+```
+
+### New Table: `analytics.fund_annual_returns` (Bar Chart History)
+
+```sql
+CREATE TABLE IF NOT EXISTS analytics.fund_annual_returns (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    series_id         VARCHAR(20) NOT NULL REFERENCES analytics.fund_master(series_id) ON DELETE CASCADE,
+    return_year       INT NOT NULL,
+    return_pct        NUMERIC(7, 4) NOT NULL,
+    accession_number  VARCHAR(25),
+    created_at        TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_fund_year_return UNIQUE (series_id, return_year)
+);
+
+CREATE INDEX IF NOT EXISTS idx_fund_annual_returns_series 
+ON analytics.fund_annual_returns(series_id);
+
+```
+
+---
+
+## 3. Component Architecture & Build Roadmap
+
+### A. Batch Job Components (`fundMetricsJob` or Step in `fundsImportJob`)
+
+* **Reader (`FundMasterMetricsReader`):**
+* Extract facts from `sec_financials.numeric_facts` where `class IS NULL AND measure IS NULL`:
+* Target Tags:
+* Fees: `ManagementFeesOverAssets`, `ExpensesOverAssets`, `OtherExpensesOverAssets`
+* Extremes: `BarChartHighestQuarterlyReturn`, `BarChartLowestQuarterlyReturn`
+* Returns: `AnnlRtrPct`
+* Expense Examples: `ExpenseExampleYear01`, `Year03`, `Year05`, `Year10`
+
+
+
+
+* **Processor (`FundMasterMetricsProcessor`):**
+* Aggregate metrics per `series_id`.
+* Parse quarterly dates associated with high/low return facts (from context period attributes).
+* Prepare `fund_master` patch payload and `List<FundAnnualReturn>` payload.
+
+
+* **Writer (`FundMasterMetricsWriter`):**
+* Bulk upsert into `analytics.fund_master` to update fee/extreme columns.
+* Bulk upsert into `analytics.fund_annual_returns` using `ON CONFLICT (series_id, return_year) DO UPDATE`.
+
+
+
+---
+
+### B. Java Backend API Layer
+
+* **Endpoint 1: Fund Profile & Fee Baseline**
+```http
+GET /api/funds/{seriesId}/profile
+
+```
+
+
+*Response:* Master metadata, strategy narrative, objective, `managementFeePct`, `netExpenseRatio`, and benchmark association.
+* **Endpoint 2: Performance Extremes & Annual Returns**
+```http
+GET /api/funds/{seriesId}/performance-history
+
+```
+
+
+*Response:*
+```json
+{
+  "seriesId": "S000006037",
+  "bestQuarter": { "returnPct": 0.2054, "period": "2020-Q2" },
+  "worstQuarter": { "returnPct": -0.1960, "period": "2020-Q1" },
+  "calendarYearReturns": [
+    { "year": 2021, "returnPct": 0.2871 },
+    { "year": 2022, "returnPct": -0.1811 },
+    { "year": 2023, "returnPct": 0.2629 },
+    { "year": 2024, "returnPct": 0.2502 }
+  ]
+}
+
+```
+
+
+
+---
+
+### C. Frontend / UI Components
+
+* **Component 1: Fund Header Quick-Stats Badge**
+* Displays Management Fee vs. Benchmark comparison badge.
+* Displays Upside/Downside Quarterly Extreme spread (`▲ Best: +20.5% | ▼ Worst: -19.6%`).
+
+
+* **Component 2: Annual Performance Bar Chart (`Recharts` / `TanStack`)**
+* Interactive bar chart rendering `calendarYearReturns` across the fund’s 10-year lifespan.
+
+
+* **Component 3: Cost-Over-Time Calculator Widget**
+* Computes hypothetical holding cost based on `ExpenseExampleYear01` through `Year10` for customizable investment balances ($1,000 to $100,000).
+
+
+
+```
+
+```
