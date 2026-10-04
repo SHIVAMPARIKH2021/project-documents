@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fund & ETF Analytics Platform - SEC EDGAR Engine</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --bg-main: #0b1120;
+      --bg-surface: #1e293b;
+      --bg-card: #0f172a;
+      --border: #334155;
+      --text-pri: #f8fafc;
+      --text-sec: #94a3b8;
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.15);
+      --success: #34d399;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --purple: #a78bfa;
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); }
+    body { background-color: var(--bg-main); color: var(--text-pri); min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.15rem; color: var(--accent); }
+    .nav-tabs { display: flex; gap: 0.5rem; }
+    .nav-tab {
+      background: none; border: none; color: var(--text-sec);
+      padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;
+      font-size: 0.9rem; font-weight: 500; transition: all 0.2s;
+    }
+    .nav-tab:hover, .nav-tab.active { background: var(--bg-surface); color: var(--text-pri); }
+    .nav-tab.active { border-bottom: 2px solid var(--accent); color: var(--accent); }
+
+    main { flex: 1; padding: 1.5rem 2rem; max-width: 1440px; margin: 0 auto; width: 100%; }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-title { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-pri); display: flex; justify-content: space-between; align-items: center; }
+
+    .filter-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) 120px;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    input, select {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-pri);
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+    .btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .badge {
+      display: inline-block; padding: 0.2rem 0.5rem; border-radius: 4px;
+      font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+    }
+    .badge-passive { background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid var(--accent); }
+    .badge-active { background: rgba(251, 191, 36, 0.15); color: var(--warning); border: 1px solid var(--warning); }
+    .badge-cadence { background: rgba(52, 211, 153, 0.15); color: var(--success); border: 1px solid var(--success); }
+    .badge-secondary { background: rgba(148, 163, 184, 0.15); color: var(--text-sec); border: 1px solid var(--border); }
+
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+    th { background: var(--bg-surface); color: var(--text-sec); padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); color: var(--text-pri); }
+    tbody tr { cursor: pointer; transition: background 0.15s ease-in-out; }
+    tbody tr:hover td { background: rgba(56, 189, 248, 0.05); }
+    tbody tr.selected-row td { background: rgba(56, 189, 248, 0.12); border-left: 3px solid var(--accent); }
+
+    .metrics-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem;
+    }
+    .metric-card .label { font-size: 0.75rem; color: var(--text-sec); margin-bottom: 0.35rem; }
+    .metric-card .val { font-size: 1.35rem; font-weight: 700; color: var(--text-pri); }
+    .metric-card .sub { font-size: 0.75rem; margin-top: 0.25rem; }
+
+    .benchmark-drawer {
+      background: linear-gradient(180deg, #131d33 0%, var(--bg-card) 100%);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-top: 1.25rem;
+      display: none;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .columns-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .columns-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    .chart-container { position: relative; height: 260px; width: 100%; }
+
+    .narrative-box {
+      background: var(--bg-surface);
+      border-radius: 6px;
+      padding: 1rem;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #cbd5e1;
+      max-height: 180px;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+    }
+
+    /* Custom Progress Bars */
+    .bar-wrapper { margin-bottom: 0.85rem; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem; color: var(--text-sec); }
+    .bar-label span:last-child { color: var(--text-pri); font-weight: 600; }
+    .progress-track { height: 8px; background: var(--bg-surface); border-radius: 4px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>
+      </svg>
+      SEC Fund & Benchmark Platform
+    </div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchPage('search-page')">Fund Search</button>
+      <button class="nav-tab" onclick="switchPage('overview-page')">Fund Overview</button>
+      <button class="nav-tab" onclick="switchPage('holdings-page')">Holdings (N-PORT)</button>
+      <button class="nav-tab" onclick="switchPage('analytics-page')">Portfolio Analytics</button>
+      <button class="nav-tab" onclick="switchPage('calculator-page')">Cost Simulation</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Page 1: Fund Search -->
+    <section id="search-page" class="page-section active">
+      <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="Search by Series, Ticker, or Name..." onkeyup="filterFunds()" />
+        <select id="assetFilter" onchange="filterFunds()">
+          <option value="">All Asset Classes</option>
+          <option value="Equity">Equity</option>
+          <option value="Fixed Income">Fixed Income</option>
+        </select>
+        <select id="strategyFilter" onchange="filterFunds()">
+          <option value="">All Strategy Types</option>
+          <option value="PASSIVE">Passive</option>
+          <option value="ACTIVE">Active</option>
+        </select>
+        <button class="btn" onclick="exportData()">Export</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Fund Master Registry (Form N-1A synchronized)</span>
+          <span style="font-size:0.75rem; color:var(--text-sec); font-weight:normal;">Click any row to inspect Primary Benchmark analytics below</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Series ID</th>
+                <th>Ticker</th>
+                <th>Fund Name</th>
+                <th>Fund Family</th>
+                <th>Strategy Type</th>
+                <th>Primary Benchmark</th>
+                <th>Cadence</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="fundTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="benchmarkDrawer" class="benchmark-drawer">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <div>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              <span style="font-size:0.75rem; color:var(--accent); font-weight:600; text-transform:uppercase;">Primary Benchmark Disclosures</span>
+              <span id="drawerFundBadge" class="badge badge-passive">PASSIVE</span>
+            </div>
+            <h3 id="drawerBenchmarkName" style="font-size:1.15rem; margin-top:0.25rem;">S&P 500 Index</h3>
+            <div id="drawerFundContext" style="font-size:0.8rem; color:var(--text-sec); margin-top:0.2rem;">Comparing against Vanguard 500 Index Fund (Series: S000006037)</div>
+          </div>
+          <button class="btn" onclick="openFullOverview()">View Full Fund Overview →</button>
+        </div>
+
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="label">Benchmark Expense Ratio Drag</div>
+            <div class="val" id="bmExpenseRatio">0.00%</div>
+            <div class="sub" style="color:var(--text-sec);">Unmanaged Index (Gross: 0.04% Fund)</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">AUM Coverage Ratio</div>
+            <div class="val" id="bmAumRatio">18.4%</div>
+            <div class="sub" style="color:var(--success);">Fund AUM / Target Benchmark Index Pool</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">LTD (Lifetime-to-Date) Ratio / Active Share</div>
+            <div class="val" id="bmLtdRatio">1.12%</div>
+            <div class="sub" style="color:var(--accent);">High Index Replication Fit</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">Benchmark 1-Yr Trailing Return</div>
+            <div class="val" style="color:var(--success);" id="bmReturnYear01">+25.02%</div>
+            <div class="sub" id="bmTrailing3Yr">3-Yr Ann: +11.23% | 5-Yr: +15.05%</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page 2: Fund Overview -->
+    <section id="overview-page" class="page-section">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <h2 id="ovFundName" style="font-size:1.4rem;">Vanguard 500 Index Fund</h2>
+            <div style="margin-top:0.4rem; display:flex; gap:0.5rem; align-items:center;">
+              <span id="ovSeries" style="color:var(--text-sec); font-size:0.85rem;">Series: S000006037</span>
+              <span id="ovBadge" class="badge badge-passive">PASSIVE</span>
+              <span class="badge badge-cadence">CADENCE: ANNUAL</span>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem; color:var(--text-sec);">Accession Number</div>
+            <div id="ovAccession" style="font-size:0.85rem; font-family:monospace;">0001193125-25-012345</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="label">Management Fee Baseline</div>
+          <div class="val" id="ovMgmtFee">0.03%</div>
+          <div class="sub" style="color:var(--success);">Series Level Default</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Net Expense Ratio</div>
+          <div class="val" id="ovNetExpense">0.04%</div>
+          <div class="sub" style="color:var(--text-sec);">Category Avg: 0.78%</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Best Quarter (Extreme)</div>
+          <div class="val" style="color:var(--success);" id="ovBestQtr">+20.54%</div>
+          <div class="sub" id="ovBestPeriod">Q2 2020</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Worst Quarter (Extreme)</div>
+          <div class="val" style="color:var(--danger);" id="ovWorstQtr">-19.60%</div>
+          <div class="sub" id="ovWorstPeriod">Q1 2020</div>
+        </div>
+      </div>
+
+      <div class="columns-2">
+        <div class="card">
+          <div class="card-title">Calendar Year Returns Trajectory (Item 4b Bar Chart)</div>
+          <div class="chart-container">
+            <canvas id="barChartCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span>Secondary & Blended Benchmarks</span>
+            <span style="font-size:0.72rem; color:var(--text-sec); font-weight:normal;">Excludes Primary Benchmark</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Benchmark Index</th>
+                  <th>Type / Provider</th>
+                  <th>Tracking Role</th>
+                </tr>
+              </thead>
+              <tbody id="secondaryBenchmarkListBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Investment Objective & Strategy Mandate</div>
+        <div style="margin-bottom: 0.5rem; font-weight:600; font-size:0.85rem; color:var(--accent);">Investment Objective:</div>
+        <div class="narrative-box" id="ovObjective" style="margin-bottom:1rem; max-height:80px;"></div>
+        <div style="margin-bottom: 0.5rem; font-weight:600; font-size:0.85rem; color:var(--accent);">Principal Strategy Narrative:</div>
+        <div class="narrative-box" id="ovStrategy"></div>
+      </div>
+    </section>
+
+    <!-- Page 3: Holdings Grid (N-PORT) -->
+    <section id="holdings-page" class="page-section">
+      <div class="card">
+        <div class="card-title">
+          <span>Quarterly Portfolio Holdings (Form N-PORT Ingestion)</span>
+          <span style="font-size:0.75rem; color:var(--text-sec);">Period End: 2025-03-31</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Security Title</th>
+                <th>CUSIP</th>
+                <th>Ticker</th>
+                <th>Asset Category</th>
+                <th>Balance (Shares)</th>
+                <th>Market Value (USD)</th>
+                <th>Portfolio Weight</th>
+              </tr>
+            </thead>
+            <tbody id="holdingsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page 4: Portfolio Analytics (Expanded & White Space Filled) -->
+    <section id="analytics-page" class="page-section">
+      
+      <!-- Top Metrics Banner -->
+      <div class="metrics-row">
+        <div class="metric-card">
+          <div class="label">Total Ingested Holdings</div>
+          <div class="val">503 Positions</div>
+          <div class="sub" style="color:var(--accent);">N-PORT Monthly Snapshot</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Top 10 Concentration</div>
+          <div class="val">34.82%</div>
+          <div class="sub" style="color:var(--warning);">Large-Cap Overweight</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Weighted Avg Market Cap</div>
+          <div class="val">$824.5 B</div>
+          <div class="sub" style="color:var(--success);">Mega-Cap Bias</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Active Share vs. S&P 500</div>
+          <div class="val" id="analyticsActiveShare">1.12%</div>
+          <div class="sub" style="color:var(--text-sec);">Passive Index Tracking</div>
+        </div>
+      </div>
+
+      <!-- Grid 1: Sector Breakdown + Regional Allocation -->
+      <div class="columns-2">
+        <div class="card">
+          <div class="card-title">Sector Allocation Breakdown</div>
+          <div class="chart-container">
+            <canvas id="sectorPieCanvas"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Regional & Geographic Exposure</div>
+          <div style="padding-top: 0.5rem;">
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>United States</span><span>98.6%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 98.6%; background: var(--accent);"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Developed Europe (UK, CH, NL)</span><span>0.8%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 0.8%; background: var(--purple);"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Asia-Pacific Developed</span><span>0.4%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 0.4%; background: var(--warning);"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Emerging Markets / Cash Collateral</span><span>0.2%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 0.2%; background: var(--success);"></div></div>
+            </div>
+
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+              <div style="font-size:0.8rem; color:var(--text-sec); margin-bottom:0.5rem; font-weight:600;">Currency Exposure:</div>
+              <div style="display:flex; gap:0.5rem;">
+                <span class="badge badge-passive">USD: 99.8%</span>
+                <span class="badge badge-secondary">EUR: 0.1%</span>
+                <span class="badge badge-secondary">GBP: 0.1%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid 2: Market Cap Breakdown + Liquidity & Risk Classification -->
+      <div class="columns-2">
+        <div class="card">
+          <div class="card-title">Market Capitalization Spectrum</div>
+          <div style="padding-top: 0.5rem;">
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Mega Cap (>$200B)</span><span>54.2%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 54.2%; background: #38bdf8;"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Large Cap ($10B - $200B)</span><span>35.1%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 35.1%; background: #34d399;"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Mid Cap ($2B - $10B)</span><span>10.2%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 10.2%; background: #fbbf24;"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Small Cap (<$2B)</span><span>0.5%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 0.5%; background: #f87171;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">SEC Rule 22e-4 Liquidity & Risk Buckets</div>
+          <div style="padding-top: 0.5rem;">
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Highly Liquid Investments (T+3 Convertible)</span><span>99.1%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 99.1%; background: var(--success);"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Moderately Liquid Investments</span><span>0.7%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 0.7%; background: var(--accent);"></div></div>
+            </div>
+            <div class="bar-wrapper">
+              <div class="bar-label"><span>Less Liquid / Illiquid Assets</span><span>0.2%</span></div>
+              <div class="progress-track"><div class="progress-fill" style="width: 0.2%; background: var(--danger);"></div></div>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:1.25rem; font-size:0.8rem; color:var(--text-sec); border-top:1px solid var(--border); padding-top:0.75rem;">
+              <span>Derivatives Exposure (Notional): <strong>0.00%</strong></span>
+              <span>Short Borrowing / Leverage: <strong>None</strong></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top 10 Portfolio Concentration Table -->
+      <div class="card">
+        <div class="card-title">Top 10 Individual Security Concentrations (N-PORT)</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Holding</th>
+                <th>Ticker</th>
+                <th>Sector</th>
+                <th>Weight</th>
+                <th>Cumulative Concentration</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Microsoft Corp</td><td style="color:var(--accent); font-weight:600;">MSFT</td><td>Technology</td><td>7.15%</td><td>7.15%</td></tr>
+              <tr><td>Apple Inc</td><td style="color:var(--accent); font-weight:600;">AAPL</td><td>Technology</td><td>6.98%</td><td>14.13%</td></tr>
+              <tr><td>NVIDIA Corp</td><td style="color:var(--accent); font-weight:600;">NVDA</td><td>Technology</td><td>6.38%</td><td>20.51%</td></tr>
+              <tr><td>Amazon.com Inc</td><td style="color:var(--accent); font-weight:600;">AMZN</td><td>Consumer Discretionary</td><td>4.47%</td><td>24.98%</td></tr>
+              <tr><td>Alphabet Inc Class A</td><td style="color:var(--accent); font-weight:600;">GOOGL</td><td>Communication</td><td>2.42%</td><td>27.40%</td></tr>
+              <tr><td>Meta Platforms Inc</td><td style="color:var(--accent); font-weight:600;">META</td><td>Communication</td><td>2.28%</td><td>29.68%</td></tr>
+              <tr><td>Berkshire Hathaway Inc</td><td style="color:var(--accent); font-weight:600;">BRK.B</td><td>Financials</td><td>1.75%</td><td>31.43%</td></tr>
+              <tr><td>Eli Lilly & Co</td><td style="color:var(--accent); font-weight:600;">LLY</td><td>Healthcare</td><td>1.45%</td><td>32.88%</td></tr>
+              <tr><td>Broadcom Inc</td><td style="color:var(--accent); font-weight:600;">AVGO</td><td>Technology</td><td>1.32%</td><td>34.20%</td></tr>
+              <tr><td>JPMorgan Chase & Co</td><td style="color:var(--accent); font-weight:600;">JPM</td><td>Financials</td><td>1.18%</td><td>35.38%</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Page 5: Cost Simulation & Fee Drag Engine (Expanded & White Space Filled) -->
+    <section id="calculator-page" class="page-section">
+      
+      <!-- Top Calculator Controls & Summary -->
+      <div class="card">
+        <div class="card-title">
+          <span>SEC Form N-1A Standardized Cost & Fee Drag Simulator</span>
+          <span style="font-size:0.75rem; color:var(--text-sec); font-weight:normal;">Item 3 Prospectus Expense Example Algorithm</span>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1.25rem; align-items:end; margin-bottom:1.5rem;">
+          <div>
+            <label style="font-size:0.8rem; color:var(--text-sec); display:block; margin-bottom:0.35rem;">Select Fund Comparison Target:</label>
+            <select id="calcFundSelector" onchange="onCalcFundChange()" style="width:100%;">
+              <option value="S000006037">Vanguard 500 Index Fund (VFIAX) - 0.04% Net</option>
+              <option value="S000002157">Fidelity Contrafund (FCNTX) - 0.55% Net</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.8rem; color:var(--text-sec); display:block; margin-bottom:0.35rem;">Initial Investment Amount ($):</label>
+            <input type="number" id="calcPrincipal" value="10000" step="1000" oninput="calculateExpenses()" style="width:100%;" />
+          </div>
+          <div>
+            <label style="font-size:0.8rem; color:var(--text-sec); display:block; margin-bottom:0.35rem;">Assumed Annual Market Growth Rate (%):</label>
+            <input type="number" id="calcGrowthRate" value="7.0" step="0.5" oninput="calculateExpenses()" style="width:100%;" />
+          </div>
+        </div>
+
+        <!-- 4 Horizon Cards -->
+        <div class="metrics-row" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 0;">
+          <div class="metric-card">
+            <div class="label">1 Year SEC Projected Cost</div>
+            <div class="val" id="expYr1">$4</div>
+            <div class="sub" style="color:var(--text-sec);">Ref: ExpenseExampleYear01</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">3 Year Cumulative Cost</div>
+            <div class="val" id="expYr3">$13</div>
+            <div class="sub" style="color:var(--text-sec);">Ref: ExpenseExampleYear03</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">5 Year Cumulative Cost</div>
+            <div class="val" id="expYr5">$23</div>
+            <div class="sub" style="color:var(--text-sec);">Ref: ExpenseExampleYear05</div>
+          </div>
+          <div class="metric-card">
+            <div class="label">10 Year Cumulative Cost</div>
+            <div class="val" id="expYr10">$51</div>
+            <div class="sub" style="color:var(--text-sec);">Ref: ExpenseExampleYear10</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Simulation Chart & Fee Breakdown -->
+      <div class="columns-2">
+        
+        <!-- Compounding Fee Drag Line Chart -->
+        <div class="card">
+          <div class="card-title">10-Year Compounding Wealth: Fund vs. Zero-Fee Benchmark</div>
+          <div class="chart-container" style="height: 290px;">
+            <canvas id="costLineChartCanvas"></canvas>
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-sec); margin-top:0.5rem; text-align:center;">
+            Assumes steady market return of 7% p.a. over 10 years including re-investment.
+          </div>
+        </div>
+
+        <!-- SEC Prospectus Fee Table Component -->
+        <div class="card">
+          <div class="card-title">Prospectus Fee Schedule Breakdown (Annual % Assets)</div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fee Component</th>
+                  <th>Rate (%)</th>
+                  <th>SEC Taxonomy Tag</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Management / Advisory Fee</td>
+                  <td id="feeMgmt" style="font-weight:600; color:var(--accent);">0.03%</td>
+                  <td><code>ManagementFeesOverAssets</code></td>
+                </tr>
+                <tr>
+                  <td>Distribution & Service (12b-1) Fee</td>
+                  <td id="fee12b1" style="font-weight:600; color:var(--success);">None</td>
+                  <td><code>DistributionAndService12b1FeesOverAssets</code></td>
+                </tr>
+                <tr>
+                  <td>Other Operating Expenses</td>
+                  <td id="feeOther" style="font-weight:600;">0.01%</td>
+                  <td><code>OtherExpensesOverAssets</code></td>
+                </tr>
+                <tr style="border-top:2px solid var(--border);">
+                  <td><strong>Total Net Expense Ratio</strong></td>
+                  <td id="feeNet" style="font-weight:700; color:var(--accent); font-size:1.05rem;">0.04%</td>
+                  <td><code>ExpensesOverAssets</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Total Lost Opportunity Cost Card -->
+          <div style="background:var(--bg-surface); border-radius:6px; padding:1rem; margin-top:1.25rem; border:1px solid var(--border);">
+            <div style="font-size:0.75rem; color:var(--text-sec); margin-bottom:0.25rem;">10-Year Opportunity Cost (Fees Paid + Lost Compounding):</div>
+            <div style="font-size:1.35rem; font-weight:700; color:var(--danger);" id="lostOpportunityVal">-$94.50</div>
+            <div style="font-size:0.75rem; color:var(--text-sec); margin-top:0.25rem;" id="lostOpportunitySub">
+              Represents 0.48% of total potential ending balance.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Comparative Scenario Table -->
+      <div class="card">
+        <div class="card-title">Impact of Expense Ratio Over Time ($10,000 Starting Capital)</div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Holding Strategy</th>
+                <th>Expense Ratio</th>
+                <th>Balance After 5 Years</th>
+                <th>Balance After 10 Years</th>
+                <th>Total Fees Incurred (10 Yr)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Selected Fund (<span id="compFundName">VFIAX</span>)</strong></td>
+                <td id="compFundFee" style="color:var(--accent); font-weight:600;">0.04%</td>
+                <td id="compFund5Yr">$13,995</td>
+                <td id="compFund10Yr">$19,598</td>
+                <td id="compFundFeesPaid" style="color:var(--success); font-weight:600;">$51</td>
+              </tr>
+              <tr>
+                <td><strong>Peer Active Mutual Fund (Average)</strong></td>
+                <td>0.75%</td>
+                <td>$13,525</td>
+                <td>$18,312</td>
+                <td style="color:var(--warning); font-weight:600;">$985</td>
+              </tr>
+              <tr>
+                <td><strong>High-Expense Retail Class</strong></td>
+                <td>1.50%</td>
+                <td>$13,047</td>
+                <td>$17,048</td>
+                <td style="color:var(--danger); font-weight:600;">$1,912</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script>
+    const fundMasterData = [
+      {
+        seriesId: "S000006037",
+        cik: "0000036405",
+        ticker: "VFIAX",
+        name: "Vanguard 500 Index Fund",
+        family: "Vanguard Group Inc",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "S&P 500 Index",
+        benchmarks: [
+          { name: "S&P 500 Index", provider: "S&P Dow Jones", isPrimary: true, role: "Regulatory Mandate" },
+          { name: "Russell 1000 Index", provider: "FTSE Russell", isPrimary: false, role: "Large Cap Peer Benchmark" },
+          { name: "CRSP US Total Market Index", provider: "CRSP", isPrimary: false, role: "Broad Market Secondary" }
+        ],
+        primaryBenchmarkMetrics: {
+          expenseRatio: "0.00%",
+          aumRatio: "21.4%",
+          ltdRatio: "0.85%",
+          returnYear01: "+25.02%",
+          returnYear03: "+11.23%",
+          returnYear05: "+15.05%"
+        },
+        cadence: "ANNUAL",
+        accession: "0001193125-25-012345",
+        mgmtFee: "0.03%",
+        netExpense: "0.04%",
+        bestQtr: "+20.54%", bestPeriod: "2020-Q2",
+        worstQtr: "-19.60%", worstPeriod: "2020-Q1",
+        objective: "The fund seeks to track the performance of a benchmark index that measures the investment return of large-capitalization stocks.",
+        strategy: "The fund employs an indexing investment approach designed to track the performance of the S&P 500 Index, a widely recognized benchmark of U.S. stock market performance that is dominated by the stocks of large U.S. companies. The fund attempts to replicate the target index by investing all, or substantially all, of its assets in the stocks that make up the index.",
+        annualReturns: [
+          { year: "2019", val: 31.49 },
+          { year: "2020", val: 18.40 },
+          { year: "2021", val: 28.71 },
+          { year: "2022", val: -18.11 },
+          { year: "2023", val: 26.29 },
+          { year: "2024", val: 25.02 }
+        ],
+        baseExpenseFactor: { y1: 4, y3: 13, y5: 23, y10: 51, feeRate: 0.0004, mgmt: "0.03%", other: "0.01%", b12: "None" }
+      },
+      {
+        seriesId: "S000002157",
+        cik: "0000030146",
+        ticker: "FCNTX",
+        name: "Fidelity Contrafund",
+        family: "Fidelity Management & Research",
+        strategyType: "ACTIVE",
+        assetClass: "Equity",
+        benchmark: "S&P 500 Index",
+        benchmarks: [
+          { name: "S&P 500 Index", provider: "S&P Dow Jones", isPrimary: true, role: "Regulatory Standard" },
+          { name: "Russell 1000 Growth Index", provider: "FTSE Russell", isPrimary: false, role: "Style Categorization" },
+          { name: "Lipper Large-Cap Growth Funds Index", provider: "Lipper", isPrimary: false, role: "Peer Group Universe" }
+        ],
+        primaryBenchmarkMetrics: {
+          expenseRatio: "0.00%",
+          aumRatio: "6.8%",
+          ltdRatio: "42.60%",
+          returnYear01: "+25.02%",
+          returnYear03: "+11.23%",
+          returnYear05: "+15.05%"
+        },
+        cadence: "ANNUAL",
+        accession: "0000030146-26-000140",
+        mgmtFee: "0.45%",
+        netExpense: "0.55%",
+        bestQtr: "+24.12%", bestPeriod: "2020-Q2",
+        worstQtr: "-17.80%", worstPeriod: "2022-Q2",
+        objective: "The fund seeks capital appreciation through active investment selection in common stocks.",
+        strategy: "The fund invests primarily in common stocks of companies whose value Fidelity Management & Research Company LLC believes is not fully recognized by the public. The manager uses fundamental analysis of factors such as each issuer's financial condition, industry position, and market conditions.",
+        annualReturns: [
+          { year: "2019", val: 29.98 },
+          { year: "2020", val: 32.58 },
+          { year: "2021", val: 24.36 },
+          { year: "2022", val: -28.26 },
+          { year: "2023", val: 39.28 },
+          { year: "2024", val: 28.45 }
+        ],
+        baseExpenseFactor: { y1: 56, y3: 176, y5: 307, y10: 689, feeRate: 0.0055, mgmt: "0.45%", other: "0.10%", b12: "None" }
+      }
+    ];
+
+    const mockHoldings = [
+      { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "12,410,200", value: "$5,460,488,000", weight: "7.15%" },
+      { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "24,800,100", value: "$5,332,021,500", weight: "6.98%" },
+      { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "38,100,500", value: "$4,876,864,000", weight: "6.38%" },
+      { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "18,450,000", value: "$3,413,250,000", weight: "4.47%" },
+      { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "11,200,300", value: "$1,848,049,500", weight: "2.42%" }
+    ];
+
+    let currentFund = fundMasterData[0];
+    let selectedSeriesId = fundMasterData[0].seriesId;
+    let barChartInstance = null;
+    let pieChartInstance = null;
+    let costChartInstance = null;
+
+    function switchPage(pageId) {
+      document.querySelectorAll('.page-section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById(pageId).classList.add('active');
+
+      const tabs = Array.from(document.querySelectorAll('.nav-tab'));
+      const activeTab = tabs.find(t => t.getAttribute('onclick').includes(pageId));
+      if (activeTab) activeTab.classList.add('active');
+
+      if (pageId === 'overview-page') {
+        populateOverviewDetails();
+        renderOverviewCharts();
+      }
+      if (pageId === 'analytics-page') renderAnalyticsCharts();
+      if (pageId === 'calculator-page') calculateExpenses();
+    }
+
+    function renderFundRegistry(funds) {
+      const tbody = document.getElementById("fundTableBody");
+      tbody.innerHTML = "";
+      funds.forEach(f => {
+        const badgeClass = f.strategyType === 'PASSIVE' ? 'badge-passive' : 'badge-active';
+        const tr = document.createElement("tr");
+        tr.id = `row-${f.seriesId}`;
+        if (f.seriesId === selectedSeriesId) tr.classList.add("selected-row");
+
+        tr.onclick = () => onRowClick(f.seriesId);
+        tr.innerHTML = `
+          <td><strong>${f.seriesId}</strong></td>
+          <td><span style="color:var(--accent); font-weight:600;">${f.ticker}</span></td>
+          <td>${f.name}</td>
+          <td>${f.family}</td>
+          <td><span class="badge ${badgeClass}">${f.strategyType}</span></td>
+          <td>${f.benchmark}</td>
+          <td><span class="badge badge-cadence">${f.cadence}</span></td>
+          <td><span style="color:var(--success);">● Active</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function onRowClick(seriesId) {
+      selectedSeriesId = seriesId;
+      const found = fundMasterData.find(f => f.seriesId === seriesId);
+      if (!found) return;
+      currentFund = found;
+
+      document.querySelectorAll('#fundTableBody tr').forEach(r => r.classList.remove('selected-row'));
+      const activeRow = document.getElementById(`row-${seriesId}`);
+      if (activeRow) activeRow.classList.add('selected-row');
+
+      renderBenchmarkDrawer(found);
+      document.getElementById("calcFundSelector").value = seriesId;
+    }
+
+    function renderBenchmarkDrawer(fund) {
+      const drawer = document.getElementById("benchmarkDrawer");
+      drawer.style.display = "block";
+
+      const primaryBm = fund.benchmarks.find(b => b.isPrimary) || fund.benchmarks[0];
+      const metrics = fund.primaryBenchmarkMetrics;
+
+      document.getElementById("drawerBenchmarkName").innerText = primaryBm.name;
+      document.getElementById("drawerFundContext").innerText = `Comparative Primary Benchmark for ${fund.name} (Series: ${fund.seriesId})`;
+      document.getElementById("drawerFundBadge").innerText = fund.strategyType;
+      document.getElementById("drawerFundBadge").className = `badge ${fund.strategyType === 'PASSIVE' ? 'badge-passive' : 'badge-active'}`;
+
+      document.getElementById("bmExpenseRatio").innerText = metrics.expenseRatio;
+      document.getElementById("bmAumRatio").innerText = metrics.aumRatio;
+      document.getElementById("bmLtdRatio").innerText = metrics.ltdRatio;
+      document.getElementById("bmReturnYear01").innerText = metrics.returnYear01;
+      document.getElementById("bmTrailing3Yr").innerText = `3-Yr Ann: ${metrics.returnYear03} | 5-Yr Ann: ${metrics.returnYear05}`;
+    }
+
+    function openFullOverview() {
+      switchPage('overview-page');
+    }
+
+    function filterFunds() {
+      const term = document.getElementById("searchInput").value.toLowerCase();
+      const strat = document.getElementById("strategyFilter").value;
+      const filtered = fundMasterData.filter(f => {
+        const matchesTerm = f.name.toLowerCase().includes(term) || f.ticker.toLowerCase().includes(term) || f.seriesId.toLowerCase().includes(term);
+        const matchesStrat = !strat || f.strategyType === strat;
+        return matchesTerm && matchesStrat;
+      });
+      renderFundRegistry(filtered);
+    }
+
+    function populateOverviewDetails() {
+      document.getElementById("ovFundName").innerText = currentFund.name;
+      document.getElementById("ovSeries").innerText = `Series: ${currentFund.seriesId} | Ticker: ${currentFund.ticker}`;
+      document.getElementById("ovAccession").innerText = currentFund.accession;
+      document.getElementById("ovBadge").innerText = currentFund.strategyType;
+      document.getElementById("ovBadge").className = `badge ${currentFund.strategyType === 'PASSIVE' ? 'badge-passive' : 'badge-active'}`;
+
+      document.getElementById("ovMgmtFee").innerText = currentFund.mgmtFee;
+      document.getElementById("ovNetExpense").innerText = currentFund.netExpense;
+      document.getElementById("ovBestQtr").innerText = currentFund.bestQtr;
+      document.getElementById("ovBestPeriod").innerText = currentFund.bestPeriod;
+      document.getElementById("ovWorstQtr").innerText = currentFund.worstQtr;
+      document.getElementById("ovWorstPeriod").innerText = currentFund.worstPeriod;
+
+      document.getElementById("ovObjective").innerText = currentFund.objective;
+      document.getElementById("ovStrategy").innerText = currentFund.strategy;
+
+      const secTable = document.getElementById("secondaryBenchmarkListBody");
+      secTable.innerHTML = "";
+      const secondaryBenchmarks = currentFund.benchmarks.filter(b => !b.isPrimary);
+
+      if (secondaryBenchmarks.length === 0) {
+        secTable.innerHTML = `<tr><td colspan="3" style="color:var(--text-sec); text-align:center; padding:1.25rem;">No secondary benchmarks reported for this fund series.</td></tr>`;
+      } else {
+        secondaryBenchmarks.forEach(b => {
+          secTable.innerHTML += `
+            <tr>
+              <td><strong>${b.name}</strong></td>
+              <td>${b.provider}</td>
+              <td><span class="badge badge-secondary">${b.role}</span></td>
+            </tr>
+          `;
+        });
+      }
+    }
+
+    function renderHoldingsTable() {
+      const tbody = document.getElementById("holdingsTableBody");
+      tbody.innerHTML = "";
+      mockHoldings.forEach(h => {
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${h.title}</strong></td>
+            <td>${h.cusip}</td>
+            <td><span style="color:var(--accent); font-weight:600;">${h.ticker}</span></td>
+            <td>${h.cat}</td>
+            <td>${h.shares}</td>
+            <td>${h.value}</td>
+            <td><strong>${h.weight}</strong></td>
+          </tr>
+        `;
+      });
+    }
+
+    function renderOverviewCharts() {
+      if (barChartInstance) barChartInstance.destroy();
+      const ctx = document.getElementById("barChartCanvas").getContext("2d");
+      const labels = currentFund.annualReturns.map(r => r.year);
+      const data = currentFund.annualReturns.map(r => r.val);
+
+      barChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Total Return (%)',
+            data: data,
+            backgroundColor: data.map(v => v >= 0 ? '#38bdf8' : '#f87171'),
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#94a3b8' } },
+            y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+          }
+        }
+      });
+    }
+
+    function renderAnalyticsCharts() {
+      if (pieChartInstance) pieChartInstance.destroy();
+      const ctx = document.getElementById("sectorPieCanvas").getContext("2d");
+      pieChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Technology', 'Financials', 'Healthcare', 'Consumer', 'Communication', 'Other'],
+          datasets: [{
+            data: [31.5, 13.2, 11.8, 10.4, 9.1, 24.0],
+            backgroundColor: ['#38bdf8', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#64748b'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }
+        }
+      });
+    }
+
+    function onCalcFundChange() {
+      const id = document.getElementById("calcFundSelector").value;
+      const f = fundMasterData.find(x => x.seriesId === id);
+      if (f) {
+        currentFund = f;
+        calculateExpenses();
+      }
+    }
+
+    function calculateExpenses() {
+      const p = parseFloat(document.getElementById("calcPrincipal").value) || 10000;
+      const rate = (parseFloat(document.getElementById("calcGrowthRate").value) || 7.0) / 100;
+      const factor = currentFund.baseExpenseFactor;
+      const ratio = p / 10000;
+
+      // Update horizon cards
+      document.getElementById("expYr1").innerText = "$" + Math.round(factor.y1 * ratio);
+      document.getElementById("expYr3").innerText = "$" + Math.round(factor.y3 * ratio);
+      document.getElementById("expYr5").innerText = "$" + Math.round(factor.y5 * ratio);
+      document.getElementById("expYr10").innerText = "$" + Math.round(factor.y10 * ratio);
+
+      // Update breakdown table
+      document.getElementById("feeMgmt").innerText = factor.mgmt;
+      document.getElementById("fee12b1").innerText = factor.b12;
+      document.getElementById("feeOther").innerText = factor.other;
+      document.getElementById("feeNet").innerText = currentFund.netExpense;
+
+      // Update comparison table values
+      document.getElementById("compFundName").innerText = currentFund.ticker;
+      document.getElementById("compFundFee").innerText = currentFund.netExpense;
+      const fundNet = rate - factor.feeRate;
+      const v5 = p * Math.pow(1 + fundNet, 5);
+      const v10 = p * Math.pow(1 + fundNet, 10);
+      document.getElementById("compFund5Yr").innerText = "$" + Math.round(v5).toLocaleString();
+      document.getElementById("compFund10Yr").innerText = "$" + Math.round(v10).toLocaleString();
+      document.getElementById("compFundFeesPaid").innerText = "$" + Math.round(factor.y10 * ratio).toLocaleString();
+
+      // Lost Opportunity Cost calculation
+      const benchmarkFinal = p * Math.pow(1 + rate, 10);
+      const fundFinal = v10;
+      const lostOpp = benchmarkFinal - fundFinal;
+      document.getElementById("lostOpportunityVal").innerText = "-$" + Math.round(lostOpp).toLocaleString();
+      const pctLost = (lostOpp / benchmarkFinal) * 100;
+      document.getElementById("lostOpportunitySub").innerText = `Represents ${pctLost.toFixed(2)}% reduction in 10-year potential wealth.`;
+
+      // Update 10-Year Compounding Line Chart
+      renderCostChart(p, rate, factor.feeRate);
+    }
+
+    function renderCostChart(principal, growthRate, fundFee) {
+      if (costChartInstance) costChartInstance.destroy();
+      const ctx = document.getElementById("costLineChartCanvas").getContext("2d");
+
+      const years = Array.from({length: 11}, (_, i) => `Yr ${i}`);
+      const benchmarkData = [];
+      const fundData = [];
+      const avgMutualFundData = [];
+      const avgFee = 0.0075; // 0.75% peer avg
+
+      for (let y = 0; y <= 10; y++) {
+        benchmarkData.push(Math.round(principal * Math.pow(1 + growthRate, y)));
+        fundData.push(Math.round(principal * Math.pow(1 + (growthRate - fundFee), y)));
+        avgMutualFundData.push(Math.round(principal * Math.pow(1 + (growthRate - avgFee), y)));
+      }
+
+      costChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: years,
+          datasets: [
+            {
+              label: 'Zero-Fee Baseline (Gross 7%)',
+              data: benchmarkData,
+              borderColor: '#34d399',
+              borderDash: [5, 5],
+              fill: false,
+              tension: 0.2
+            },
+            {
+              label: `${currentFund.ticker} (${currentFund.netExpense})`,
+              data: fundData,
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.08)',
+              fill: true,
+              tension: 0.2
+            },
+            {
+              label: 'Peer Mutual Fund Avg (0.75%)',
+              data: avgMutualFundData,
+              borderColor: '#f87171',
+              fill: false,
+              tension: 0.2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: $${ctx.raw.toLocaleString()}`
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+            y: {
+              grid: { color: '#1e293b' },
+              ticks: {
+                color: '#94a3b8',
+                callback: (val) => '$' + (val / 1000).toFixed(0) + 'k'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fundMasterData, null, 2));
+      const anchor = document.createElement('a');
+      anchor.setAttribute("href", dataStr);
+      anchor.setAttribute("download", "fund_master_registry.json");
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    }
+
+    window.onload = () => {
+      renderFundRegistry(fundMasterData);
+      renderBenchmarkDrawer(currentFund);
+      populateOverviewDetails();
+      renderHoldingsTable();
+      calculateExpenses();
+    };
+  </script>
+</body>
+</html>
