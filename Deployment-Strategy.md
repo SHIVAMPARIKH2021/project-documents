@@ -1,4 +1,4 @@
-### USe Different Ports 
+### Use Different Ports 
 Mapping different host ports to your containerized APIs is the standard way to test individual microservices directly via Postman.
 Here is how port mapping works, which ports you can use, and how to set it up.
 
@@ -101,6 +101,43 @@ Once the containers are running:
 * User API: `[http://192.168.1.50:8081/api/v1/users](http://192.168.1.50:8081/api/v1/users)`
 * Order API: `[http://192.168.1.50:8082/api/v1/orders](http://192.168.1.50:8082/api/v1/orders)`
 
+---
+
+### For Batch Jobs
+
+- Your Mac is the Server (Jenkins Controller / Master):
+The Jenkins server application runs on your Mac. It hosts the Jenkins web dashboard, stores pipeline definitions, schedules jobs, manages credentials, and orchestrates builds.
+- Your Windows machine is the Client / Worker (Jenkins Agent / Node):
+
+The Windows machine runs a lightweight background Java client program (agent.jar). It does not run the Jenkins server; instead, it registers itself with the controller on your Mac and waits for work. When a pipeline stage specifies agent { label 'windows' }, the Mac tells the Windows agent to execute the shell/batch commands and run the Docker containers.
+
+```Plain text
+[ Jenkins Controller / SERVER ]
+                  (Mac)
+      - Runs Jenkins Web UI
+      - Stores Secrets & Pipelines
+      - Orchestrates Workflow
+                 │
+                 │  Inbound Agent Connection
+                 │  (Windows dials into Mac)
+                 ▼
+       [ Jenkins Agent / CLIENT / WORKER ]
+                 (Windows)
+      - Runs agent.jar
+      - Runs Docker Engine
+      - Executes container builds & batch jobs
+```
+
+**How Network Connectivity Works**
+With the standard Inbound Agent (JNLP) setup:
+
+1. You create a new node in Jenkins on your Mac (Manage Jenkins -> Nodes -> New Node).
+2. Jenkins gives you a secret key and a command to run.
+3. On your Windows machine, you run that command:
+
+```Powershell
+java -jar agent.jar -url http://<MAC_IP_ADDRESS>:8080 -secret <SECRET_KEY> -name "windows-docker-agent" -workDir "C:\jenkins"
+```
 
 
 ---
