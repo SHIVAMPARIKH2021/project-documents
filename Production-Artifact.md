@@ -185,23 +185,28 @@ Log into the Windows desktop, open **PowerShell as Administrator**, and execute:
 
 2. Ensure connection profile is Private (allows inbound SSH port 22 through firewall)
 ```powershell
-    Get-NetConnectionProfile | Select-Object InterfaceAlias, NetworkCategory
-    If Public, switch it:
-    Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
+   Get-NetConnectionProfile | Select-Object InterfaceAlias, NetworkCategory 
 ```
-
+   - If Public, switch it:
+```powershell
+   Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
+```
 3. Ensure native PostgreSQL service is running
 ```powershell
     Get-Service -Name "*postgres*" | Select-Object Name, Status, StartType
-    If stopped:
-    Start-Service -Name "postgresql*"
+```
+   - If stopped:
+```powershell
+   Start-Service -Name "postgresql*"
 ```
 
 4. Ensure OpenSSH service is running
 ```powershell
-    Get-Service sshd | Select-Object Status, StartType
-    If stopped:
-    Start-Service sshd
+   Get-Service sshd | Select-Object Status, StartType
+```
+   - If stopped:
+```powershell
+   Start-Service -Name "sshd"
 ```
 
 5. Launch Docker Desktop
