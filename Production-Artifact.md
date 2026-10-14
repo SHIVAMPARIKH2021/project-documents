@@ -170,7 +170,48 @@ pipeline {
 
 ---
 
-## Part 2: Cold-Start Operational Checklist
+## Part 2: One-Time Setup: Docker Credential Shim
+
+Run this once in PowerShell as Administrator:
+
+1. Restore the original binary if it was renamed to .bak
+```powershell
+$credDesktopBak = "C:\Program Files\Docker\Docker\resources\bin\docker-credential-desktop.exe.bak"
+$credDesktopOrig = "C:\Program Files\Docker\Docker\resources\bin\docker-credential-desktop.exe"
+if (Test-Path $credDesktopBak) {
+    Move-Item -Path $credDesktopBak -Destination $credDesktopOrig -Force
+}
+```
+
+2. Create the dummy shim directory
+```powershell
+$helperDir = "C:\ProgramData\docker-cli-helpers"
+if (-not (Test-Path $helperDir)) {
+    New-Item -ItemType Directory -Path $helperDir -Force
+}
+```
+
+3. Create the dummy batch script
+```powershell
+@'
+@echo off
+if "%1"=="get" (
+    echo {}
+    exit /b 0
+)
+exit /b 0
+'@ | Set-Content -Path "$helperDir\docker-credential-desktop.bat" -Encoding ASCII
+```
+
+4. Prepend shim directory to System PATH
+```powershell
+$systemPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+if ($systemPath -notmatch [regex]::Escape($helperDir)) {
+    [Environment]::SetEnvironmentVariable("Path", "$helperDir;$systemPath", "Machine")
+}
+```
+
+## Part 3: Cold-Start Operational Checklist
 
 Follow this procedure when both machines (MacBook Pro and Windows host) have been powered on after a full shutdown.
 
@@ -185,33 +226,39 @@ Log into the Windows desktop, open **PowerShell as Administrator**, and execute:
 
 2. Ensure connection profile is Private (allows inbound SSH port 22 through firewall)
 ```powershell
-   Get-NetConnectionProfile | Select-Object InterfaceAlias, NetworkCategory 
+   $profile = Get-NetConnectionProfile | Select-Object -First 1
+   if ($profile.NetworkCategory -ne "Private") {
+      Set-NetConnectionProfile -InterfaceAlias $profile.InterfaceAlias -NetworkCategory Private
+   } 
 ```
-   - If Public, switch it:
-```powershell
-   Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
-```
+
 3. Ensure native PostgreSQL service is running
 ```powershell
-    Get-Service -Name "*postgres*" | Select-Object Name, Status, StartType
+    $pg = Get-Service -Name "*postgres*" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($pg -and $pg.Status -ne "Running") {
+      Start-Service $pg.Name
+    }
 ```
-   - If stopped:
-```powershell
-   Start-Service -Name "postgresql*"
-```
+
 
 4. Ensure OpenSSH service is running
 ```powershell
-   Get-Service sshd | Select-Object Status, StartType
-```
-   - If stopped:
-```powershell
-   Start-Service -Name "sshd"
+   $sshd = Get-Service sshd -ErrorAction SilentlyContinue
+   if ($sshd.Status -ne "Running") {
+      Start-Service sshd
+   } else {
+      Restart-Service sshd
+   }
 ```
 
 5. Launch Docker Desktop
 ```powershell
-    Start-Process "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+   $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+   if (Test-Path $dockerPath) {
+      Start-Process $dockerPath
+   } else {
+      Write-Warning "Docker Desktop executable not found at $dockerPath"
+   }
 ```
 
 6. Verify Docker engine after icon turns solid green
