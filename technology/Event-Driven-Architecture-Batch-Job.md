@@ -107,3 +107,23 @@ RABBITMQ WORLD (1-to-1 Equivalent in a Single Lightweight Broker):
                                                                       ▼
                                           (Web UI Inspect / Dead-letter listener)
 ```
+---
+## Run RabbitMQ broker like microservice
+```text
+[ Jenkins Pipeline ]
+       │
+       │ (Streams context via SSH: Dockerfile + rabbitmq.conf + definitions.json)
+       ▼
+[ Windows Host Docker Daemon ]
+       │
+       │ docker build -t fund-rabbitmq:latest -
+       ▼
+[ Immutable Docker Image: fund-rabbitmq:latest ]
+   ├── /etc/rabbitmq/rabbitmq.conf     (baked in)
+   └── /etc/rabbitmq/definitions.json  (baked in)
+       │
+       │ docker run / docker compose up
+       ▼
+[ Running Container: fund-orchestration-rabbitmq ]
+ (Runs purely inside Docker Desktop; nothing on your Windows host filesystem)
+```
