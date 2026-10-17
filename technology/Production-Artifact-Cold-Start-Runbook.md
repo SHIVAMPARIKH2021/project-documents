@@ -39,6 +39,15 @@ if ($systemPath -notmatch [regex]::Escape($helperDir)) {
 }
 ```
 
+5. Allow Client machine to connect to RabbitMQ UI
+```powershell
+New-NetFirewallRule -DisplayName "RabbitMQ (AMQP & Management)" `
+    -Direction Inbound `
+    -LocalPort 5672, 15672 `
+    -Protocol TCP `
+    -Action Allow 
+```
+
 ## Part 2: Cold-Start Operational Checklist
 
 Follow this procedure when both machines (MacBook Pro and Windows host) have been powered on after a full shutdown.
@@ -47,7 +56,7 @@ Follow this procedure when both machines (MacBook Pro and Windows host) have bee
 
 Log into the Windows desktop, open **PowerShell as Administrator**, and execute:
 
-1. Verify IP Address (must match Doppler's WINDOWS_HOST value, nominally 192.168.1.9)
+1. Verify IP Address (must match Doppler's WINDOWS_HOST value, if not ***change it in Doppler***)
 ```powershell 
     Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch "vEthernet|Loopback" } | Select-Object InterfaceAlias, IPAddress
 ```
