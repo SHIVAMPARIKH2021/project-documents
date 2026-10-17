@@ -93,7 +93,7 @@ RABBITMQ WORLD (1-to-1 Equivalent in a Single Lightweight Broker):
           │
           │ binding: "fund.etl.#"
           ▼
-[ Queue: fund.import.trigger.queue ] ──(Consumer Error / Max Retries)──┐
+[ Queue: fund.import.trigger.queue ] ──(Consumer Error / Max Retries)─┐
   (arguments:                                                         │
      x-dead-letter-exchange: "etl.events.dlx",                        │ reject(requeue=false)
      x-dead-letter-routing-key: "fund.import.failed")                 │
