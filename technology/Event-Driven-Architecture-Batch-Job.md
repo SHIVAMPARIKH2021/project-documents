@@ -1,3 +1,4 @@
+# Event Driven Flow for Data Ingestion Pipelines
 ```text
 ====================================================================================================
 AWS WORLD (SNS + SQS Distributed Pattern):
@@ -80,4 +81,29 @@ RABBITMQ WORLD (1-to-1 Equivalent in a Single Lightweight Broker):
 |  |   +---------------------------------------------------------------------------------------+   | |
 |  +-----------------------------------------------------------------------------------------------+ |
 +----------------------------------------------------------------------------------------------------+
+```
+---
+## Dead Letter Queue Workflow
+```text
+[ Python ETL / Publisher ]
+          │
+          │ routing_key: "fund.etl.completed"
+          ▼
+[ Exchange: etl.events.exchange (topic) ]
+          │
+          │ binding: "fund.etl.#"
+          ▼
+[ Queue: fund.import.trigger.queue ] ──(Consumer Error / Max Retries)──┐
+  (arguments:                                                         │
+     x-dead-letter-exchange: "etl.events.dlx",                        │ reject(requeue=false)
+     x-dead-letter-routing-key: "fund.import.failed")                 │
+                                                                      ▼
+                                          [ DLX: etl.events.dlx (direct) ]
+                                                                      │
+                                                                      │ binding: "fund.import.failed"
+                                                                      ▼
+                                          [ DLQ: fund.import.trigger.dlq ]
+                                                                      │
+                                                                      ▼
+                                          (Web UI Inspect / Dead-letter listener)
 ```
