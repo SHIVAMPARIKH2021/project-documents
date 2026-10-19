@@ -11,8 +11,8 @@
   "source": "fund-etl:sec-edgar-cron",
   "correlationId": "corr-2026-q1-run-001",
   "payload": {
-    "year": 2026,
-    "quarter": 1,
+    "year": "2026",
+    "quarter": "1",
     "isTicker": true,
     "isForcedImport": false,
     "recordsProcessed": 1420,
