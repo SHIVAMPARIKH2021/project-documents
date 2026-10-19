@@ -5,7 +5,7 @@
 ```json
 {
   "specVersion": "1.0",
-  "eventId": "c73a792c-5678-4a1b-9f20-91a3e6f982b1",
+  "jobId": "c73a792c-5678-4a1b-9f20-91a3e6f982b1",
   "eventType": "com.sec.pipeline.fund.etl.completed",
   "timestamp": "2026-10-17T16:45:00.123Z",
   "source": "fund-etl:sec-edgar-cron",
@@ -13,8 +13,8 @@
   "payload": {
     "year": 2026,
     "quarter": 1,
-    "ticker": "True",
-    "force": false,
+    "isTicker": true,
+    "isForcedImport": false,
     "recordsProcessed": 1420,
     "status": "SUCCESS"
   }
