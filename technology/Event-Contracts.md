@@ -14,6 +14,7 @@
     "year": "2026",
     "quarter": "1",
     "error":"",
+    "isForcedImport": false,
     "recordsProcessed": 1420,
     "status": "SUCCESS"
   }
