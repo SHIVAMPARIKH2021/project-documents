@@ -13,8 +13,6 @@
   "payload": {
     "year": "2026",
     "quarter": "1",
-    "isTicker": true,
-    "isForcedImport": false,
     "error":"",
     "recordsProcessed": 1420,
     "status": "SUCCESS"
