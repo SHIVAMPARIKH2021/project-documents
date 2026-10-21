@@ -109,12 +109,12 @@ Log into your MacBook Pro and open **Terminal**:
 
 1. Test TCP reachability to Windows OpenSSH port
 ```bash
-nc -zv -w 3 192.168.1.9 22
+nc -zv -w 3 <WINDOWS_HOST> 22
 ```
 
 2. Verify remote non-interactive Docker access over SSH
 ```bash
-ssh shiva@192.168.1.9 "docker version"
+ssh shiva@<WINDOWS_HOST> "docker version"
 ```
 
 3. Start Jenkins service
