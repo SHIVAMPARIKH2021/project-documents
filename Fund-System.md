@@ -92,3 +92,141 @@ flowchart TD
 |Fund (Series)|"The distinct pooled investment vehicle that holds the actual basket of securities (stocks, bonds, cash). All classes share the same manager, portfolio, and strategy."|series_id (S0000xxxxx)|"Investment objective| strategy narrative, total portfolio value."|
 |Share Class (Contract)|"A specific ownership slice of the fund tailored to different investor types. Each class has distinct fee structures, minimum investments, tickers, and expense ratios."|class_id (C0000xxxxx)|"Ticker symbol, 12b-1 fees, gross/net expense ratios, load waivers."|
 |Comparative Market Index|"An external, unmanaged benchmark against which the fund's performance is measured under SEC Item 4 regulatory disclosure rules."|Dimensional Axis Member (measure)|"Not owned by the fund; reflects no deduction for fees, expenses, or taxes (e.g., Russell 2000, S&P 500)."|
+
+---
+
+# Business Domains of Project
+***Domain-Driven Design (DDD) Clarification: Fund vs. Benchmark***
+- In a strict Domain-Driven Design model, Fund is an Aggregate Root, but Benchmark is its own independent Aggregate Root, not merely a child/internal entity of Fund.
+
+***Why Benchmark is its own Aggregate Root:***
+- A Benchmark (such as the S&P 500 Index or Russell 1000) exists independently in financial markets. It is not owned exclusively by one fund. Multiple funds track the same benchmark simultaneously (e.g., both Vanguard 500 and Fidelity Contrafund reference the S&P 500 Index). If a fund is deleted or delisted, the benchmark continues to exist.   
+
+***How Fund relates to Benchmark:***
+- The Fund aggregate references Benchmark via an Association Entity (FundBenchmarkAssociation / BenchmarkMapping) which defines the relationship metadata (e.g., isPrimary: true/false, trackingRole, regulatory disclosures).
+
+```plaintext
+========================================================================================
+           DOMAIN-DRIVEN DESIGN (DDD) AGGREGATE BOUNDARY GRAPH (PROTOTYPE TABS 1 - 5)
+========================================================================================
+
++--------------------------------------------------------------------------------------+
+| [AGGREGATE ROOT] : Fund (Entity)                                                     |
+| Identity: seriesId (e.g., S000006037)                                                |
++--------------------------------------------------------------------------------------+
+  |
+  +-- [ENTITY] ShareClass / Ticker
+  |     Identity: classId / ticker (e.g., VFIAX, C000016480)
+  |     Attributes: tickerSymbol, inceptionDate, currency, isActive
+  |
+  +-- [VALUE OBJECT] FundIdentity
+  |     Attributes: cik, fundName, fundFamilyName, accessionNumber
+  |
+  +-- [VALUE OBJECT] StrategyMandate
+  |     Attributes: strategyType (ACTIVE | PASSIVE), assetClass, cadence
+  |
+  +-- [VALUE OBJECT] StatutoryFeeSchedule (Form N-1A Item 3)
+  |     Attributes: managementFee, distribution12b1Fee, otherExpenses, netExpenseRatio
+  |
+  +-- [VALUE OBJECT] ProspectusNarratives
+  |     Attributes: investmentObjective, principalStrategyNarrative
+  |
+  +-- [ENTITY] ExtremeQuarterPerformance (Item 4b)
+  |     Attributes: bestQuarterReturn, bestQuarterPeriod, worstQuarterReturn, worstQuarterPeriod
+  |
+  +-- [ENTITY COLLECTION] CalendarYearReturns (Item 4b History)
+  |     Attributes: year, totalReturnPercentage
+  |
+  +-- [ENTITY] FundBenchmarkAssociation (Bridge / Reference)
+  |     Identity: fundBenchmarkAssociationId
+  |     References: BenchmarkId (Foreign Aggregate Identity)
+  |     Attributes: isPrimary (Boolean), trackingRole, comparativeMetrics
+  |
+  +-- [VALUE OBJECT] ComparativeBenchmarkMetrics (Snapshot per Fund)
+        Attributes: benchmarkExpenseRatioDrag, aumCoverageRatio, ltdActiveShareRatio,
+                    trailingReturn1Yr, trailingReturn3Yr, trailingReturn5Yr
+
+
++--------------------------------------------------------------------------------------+
+| [AGGREGATE ROOT] : Benchmark (Entity)                                                |
+| Identity: benchmarkId (e.g., BM_SP500_INDEX)                                         |
++--------------------------------------------------------------------------------------+
+  |
+  +-- [VALUE OBJECT] BenchmarkMetadata
+  |     Attributes: benchmarkName, provider (S&P Dow Jones, FTSE Russell, CRSP), marketType
+  |
+  +-- [ENTITY COLLECTION] BenchmarkHistoricalPerformance
+        Identity: performanceRecordId
+        Attributes: asOfDate, return1Yr, return3YrAnn, return5YrAnn, returnLifetime
+
+
++--------------------------------------------------------------------------------------+
+| [AGGREGATE ROOT] : PortfolioSnapshot (Form N-PORT Monthly Ingestion)                 |
+| Identity: snapshotId (e.g., NPORT_S000006037_20250331)                               |
++--------------------------------------------------------------------------------------+
+  |
+  +-- References: FundId (Foreign Aggregate Identity)
+  |
+  +-- [VALUE OBJECT] ReportingPeriod
+  |     Attributes: periodEndDate, filingDate, accessionNumber
+  |
+  +-- [ENTITY COLLECTION] PositionHolding (Child Entity)
+  |     Identity: holdingId / cusip (e.g., 594918104 - MSFT)
+  |     Attributes: securityTitle, ticker, assetCategory, balanceShares, marketValueUsd,
+  |                 portfolioWeight, cumulativeConcentrationRank
+  |
+  +-- [VALUE OBJECT] ConcentrationMetrics
+  |     Attributes: totalPositionsCount, top10ConcentrationRatio, weightedAvgMarketCapUsd,
+  |                 activeShareRatio
+  |
+  +-- [VALUE OBJECT COLLECTION] SectorAllocationDistribution
+  |     Attributes: gicsSector (Technology, Financials, Healthcare), weightPercentage
+  |
+  +-- [VALUE OBJECT COLLECTION] RegionalExposureDistribution
+  |     Attributes: regionName (United States, Europe, Asia-Pacific), weightPercentage
+  |
+  +-- [VALUE OBJECT COLLECTION] CurrencyExposureDistribution
+  |     Attributes: currencyCode (USD, EUR, GBP), allocationPercentage
+  |
+  +-- [VALUE OBJECT COLLECTION] MarketCapSpectrumDistribution
+  |     Attributes: capTier (Mega, Large, Mid, Small), weightPercentage
+  |
+  +-- [VALUE OBJECT COLLECTION] LiquidityBuckets (SEC Rule 22e-4)
+  |     Attributes: bucketType (Highly Liquid, Moderately Liquid, Less Liquid), weightPercentage
+  |
+  +-- [VALUE OBJECT] RiskClassification
+        Attributes: notionalDerivativesExposure, shortBorrowingLeverageStatus
+
+
++--------------------------------------------------------------------------------------+
+| [AGGREGATE ROOT] : CostSimulationModel (Transient Simulation Session)                |
+| Identity: simulationId (e.g., SIM_VFIAX_10000_7PCT)                                  |
++--------------------------------------------------------------------------------------+
+  |
+  +-- References: FundId (Foreign Aggregate Identity)
+  |
+  +-- [VALUE OBJECT] SimulationParameters
+  |     Attributes: initialPrincipalUsd, assumedAnnualGrowthRatePercentage, timeHorizonYears
+  |
+  +-- [VALUE OBJECT] StandardizedProspectusCostTable (Item 3 Algorithm)
+  |     Attributes: costYear01, costYear03, costYear05, costYear10
+  |
+  +-- [VALUE OBJECT COLLECTION] CompoundingWealthTrajectory
+  |     Attributes: yearIndex (Yr 0 to Yr 10), zeroFeeBaselineBalance,
+  |                 fundAccumulatedBalance, peerAverageAccumulatedBalance
+  |
+  +-- [VALUE OBJECT] OpportunityCostMetrics
+  |     Attributes: totalLostOpportunityDollarValue, reductionInPotentialWealthPercentage
+  |
+  +-- [VALUE OBJECT COLLECTION] ComparativeFeeScenarios
+        Attributes: strategyType, expenseRatio, balanceAfter5Years, balanceAfter10Years,
+                    totalFeesIncurred10Years
+```
+
+|Tab|Primary Aggregate Root|Associated / Secondary Aggregate Roots|Key Child Entities / Value Objects|
+|:----|:----------------------|:--------------------------------------|:----------------------------------|
+|Tab 1: Fund Search|Fund|Benchmark|FundIdentity, StrategyMandate, FundBenchmarkAssociation|
+|Tab 2: Fund Overview|Fund|Benchmark|StatutoryFeeSchedule, ProspectusNarratives, CalendarYearReturns, ExtremeQuarterPerformance|
+|Tab 3: Holdings (N-PORT)|PortfolioSnapshot|Fund (via seriesId reference)|PositionHolding|
+|Tab 4: Portfolio Analytics|PortfolioSnapshot|Benchmark (for Active Share)|ConcentrationMetrics, SectorAllocationDistribution,RegionalExposureDistribution, MarketCapSpectrumDistribution, LiquidityBuckets|
+|Tab 5: Cost Simulation|CostSimulationModel|Fund (source fee rates)|StandardizedProspectusCostTable, CompoundingWealthTrajectory, OpportunityCostMetrics|
