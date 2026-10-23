@@ -225,7 +225,7 @@ flowchart TD
 
 |Tab|Primary Aggregate Root|Associated / Secondary Aggregate Roots|Key Child Entities / Value Objects|
 |:----|:----------------------|:--------------------------------------|:----------------------------------|
-|Tab 1: Fund Search|Fund|Benchmark|FundIdentity, StrategyMandate, FundBenchmarkAssociation|
+|Tab 1: Fund Search|Fund|PortfolioSnapshot (Holdings), Benchmark|FundIdentity (Series, Ticker, CUSIP, Name), StrategyMandate (Asset Category, Strategy, Cadence), PositionHolding (via PortfolioSnapshot), FundBenchmarkAssociation|
 |Tab 2: Fund Overview|Fund|Benchmark|StatutoryFeeSchedule, ProspectusNarratives, CalendarYearReturns, ExtremeQuarterPerformance|
 |Tab 3: Holdings (N-PORT)|PortfolioSnapshot|Fund (via seriesId reference)|PositionHolding|
 |Tab 4: Portfolio Analytics|PortfolioSnapshot|Benchmark (for Active Share)|ConcentrationMetrics, SectorAllocationDistribution,RegionalExposureDistribution, MarketCapSpectrumDistribution, LiquidityBuckets|

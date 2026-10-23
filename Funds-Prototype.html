@@ -371,16 +371,97 @@
       color: var(--text-main);
       vertical-align: middle;
     }
-    tbody tr {
+    tbody tr.clickable-row {
       transition: background 0.15s;
       cursor: pointer;
     }
-    tbody tr:hover td {
+    tbody tr.clickable-row:hover td {
       background: rgba(0, 240, 255, 0.04);
     }
-    tbody tr.selected-row td {
-      background: rgba(0, 240, 255, 0.09);
+    tbody tr.clickable-row.expanded-row td {
+      background: rgba(0, 240, 255, 0.08);
       border-left: 3px solid var(--neon-cyan);
+    }
+
+    /* Expandable Nested Details Row */
+    tr.expandable-details-row {
+      display: none;
+      background: #0a1122;
+    }
+    tr.expandable-details-row.open {
+      display: table-row;
+      animation: tabFadeIn 0.2s ease-in-out;
+    }
+    .nested-details-wrapper {
+      padding: 1.25rem 1.5rem;
+      border-left: 3px solid var(--neon-cyan);
+      border-bottom: 2px solid var(--border-bright);
+      background: linear-gradient(180deg, rgba(16, 28, 56, 0.5) 0%, rgba(10, 17, 34, 0.9) 100%);
+    }
+    .nested-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .nested-metric-card {
+      background: rgba(13, 21, 39, 0.8);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 0.75rem 0.9rem;
+    }
+    .nested-metric-card .n-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      font-weight: 700;
+    }
+    .nested-metric-card .n-val {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-main);
+    }
+
+    /* Pagination Controls */
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 1rem;
+      margin-top: 0.75rem;
+      border-top: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .pagination-info { font-size: 0.78rem; color: var(--text-muted); }
+    .pagination-buttons { display: flex; gap: 0.35rem; align-items: center; }
+    .page-btn {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 0.35rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .page-btn:hover:not(:disabled) {
+      background: var(--border-bright);
+      color: var(--neon-cyan);
+      border-color: var(--neon-cyan);
+    }
+    .page-btn.active {
+      background: var(--gradient-cyan);
+      color: #031326;
+      border-color: var(--neon-cyan);
+      font-weight: 800;
+    }
+    .page-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     /* Vibrant Color Badges */
@@ -509,7 +590,7 @@
     <div class="ticker-item"><i class="fa-solid fa-bolt" style="color:var(--neon-amber)"></i> <span>Spring Batch Daemon:</span> <span class="pos-val">IDLE / READY</span></div>
   </div>
 
-  <!-- Header & App Nav Tabs -->
+  <!-- Header & App Nav Tabs (Holdings merged into Search) -->
   <header>
     <div class="header-inner">
       <div class="brand">
@@ -522,14 +603,13 @@
       </div>
 
       <div class="nav-tabs-wrapper">
-        <button class="nav-tab active" onclick="switchPage('search-page')"><i class="fa-solid fa-magnifying-glass"></i> 1. Search</button>
-        <button class="nav-tab" onclick="switchPage('overview-page')"><i class="fa-solid fa-file-invoice"></i> 2. Overview</button>
-        <button class="nav-tab" onclick="switchPage('holdings-page')"><i class="fa-solid fa-list-check"></i> 3. Holdings</button>
-        <button class="nav-tab" onclick="switchPage('analytics-page')"><i class="fa-solid fa-chart-pie"></i> 4. Analytics</button>
-        <button class="nav-tab" onclick="switchPage('calculator-page')"><i class="fa-solid fa-calculator"></i> 5. Cost Sim</button>
-        <button class="nav-tab" onclick="switchPage('builder-page')"><i class="fa-solid fa-layer-group"></i> 6. Portfolio Builder</button>
-        <button class="nav-tab" onclick="switchPage('watchlists-page')"><i class="fa-solid fa-bell"></i> 7. Watchlists</button>
-        <button class="nav-tab" onclick="switchPage('screeners-page')"><i class="fa-solid fa-filter"></i> 8. Screeners</button>
+        <button class="nav-tab active" onclick="switchPage('search-page')"><i class="fa-solid fa-magnifying-glass"></i> 1. Fund Search & Holdings</button>
+        <button class="nav-tab" onclick="switchPage('overview-page')"><i class="fa-solid fa-file-invoice"></i> 2. Fund Overview</button>
+        <button class="nav-tab" onclick="switchPage('analytics-page')"><i class="fa-solid fa-chart-pie"></i> 3. Portfolio Analytics</button>
+        <button class="nav-tab" onclick="switchPage('calculator-page')"><i class="fa-solid fa-calculator"></i> 4. Cost Simulation</button>
+        <button class="nav-tab" onclick="switchPage('builder-page')"><i class="fa-solid fa-layer-group"></i> 5. Portfolio Builder</button>
+        <button class="nav-tab" onclick="switchPage('watchlists-page')"><i class="fa-solid fa-bell"></i> 6. Watchlists</button>
+        <button class="nav-tab" onclick="switchPage('screeners-page')"><i class="fa-solid fa-filter"></i> 7. Saved Screeners</button>
       </div>
     </div>
   </header>
@@ -537,11 +617,11 @@
   <main>
 
     <!-- ========================================== -->
-    <!-- TAB 1: FUND SEARCH                         -->
+    <!-- TAB 1: FUND SEARCH & INTEGRATED HOLDINGS   -->
     <!-- ========================================== -->
     <section id="search-page" class="page-section active">
       <div class="filter-bar">
-        <input type="text" id="searchInput" placeholder="Search by Series ID (e.g. S000006037), Ticker (VFIAX, FCNTX), or Name..." onkeyup="filterFunds()" />
+        <input type="text" id="searchInput" placeholder="Search by Series ID (e.g. S000006037), Ticker (VFIAX, FCNTX), CUSIP, or Name..." onkeyup="filterFunds()" />
         <select id="assetFilter" onchange="filterFunds()">
           <option value="">All Asset Classes</option>
           <option value="Equity">Equity</option>
@@ -554,32 +634,38 @@
         </select>
         <button class="btn" onclick="exportData()"><i class="fa-solid fa-cloud-arrow-down"></i> Export Dataset</button>
       </div>
-
+      <!-- Modern Glass Cards -->
       <div class="card">
         <div class="card-title">
           <div class="title-left">
             <i class="fa-solid fa-database title-icon"></i>
             <span>SEC Form N-1A Synchronized Master Fund Registry</span>
           </div>
-          <span style="font-size:0.75rem; color:var(--text-muted);"><i class="fa-solid fa-hand-pointer"></i> Click any fund row to inspect Primary Benchmark disclosures</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);"><i class="fa-solid fa-chevron-down"></i> Click any row to expand integrated N-PORT Holdings & Portfolio Weights (10 funds per page)</span>
         </div>
 
         <div class="table-container">
           <table>
             <thead>
               <tr>
-                <th>Series ID</th>
-                <th>Ticker</th>
-                <th>Fund Name</th>
-                <th>Fund Family</th>
-                <th>Strategy</th>
-                <th>Primary Benchmark</th>
-                <th>Cadence</th>
-                <th>Status</th>
+                <th style="width: 130px;">SERIES ID</th>
+                <th style="width: 90px;">TICKER</th>
+                <th style="width: 110px;">CUSIP</th>
+                <th>FUND NAME</th>
+                <th style="width: 130px;">ASSET CATEGORY</th>
+                <th style="width: 110px;">STRATEGY</th>
+                <th style="width: 110px;">CADENCE</th>
+                <th style="width: 100px;">STATUS</th>
               </tr>
             </thead>
             <tbody id="fundTableBody"></tbody>
           </table>
+        </div>
+
+        <!-- 10 Rows Per Page Pagination Bar -->
+        <div class="pagination-bar">
+          <div class="pagination-info" id="paginationInfo">Showing 1-10 of 12 Funds</div>
+          <div class="pagination-buttons" id="paginationButtons"></div>
         </div>
       </div>
 
@@ -719,42 +805,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 3: HOLDINGS (N-PORT)                   -->
-    <!-- ========================================== -->
-    <section id="holdings-page" class="page-section">
-      <div class="card">
-        <div class="card-title">
-          <div class="title-left">
-            <i class="fa-solid fa-cubes title-icon"></i>
-            <span>Quarterly Portfolio Holdings (SEC Form N-PORT Monthly Snapshot)</span>
-          </div>
-          <div style="display:flex; gap:0.5rem; align-items:center;">
-            <div class="api-badge"><span class="m-get">GET</span> /api/funds/{seriesId}/holdings</div>
-            <span class="badge badge-cadence"><i class="fa-solid fa-shield-halved"></i> Audit Verified</span>
-          </div>
-        </div>
-
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Security Name</th>
-                <th>CUSIP</th>
-                <th>Ticker</th>
-                <th>Asset Class</th>
-                <th>Share Balance</th>
-                <th>Market Value (USD)</th>
-                <th>Portfolio Weight</th>
-              </tr>
-            </thead>
-            <tbody id="holdingsTableBody"></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========================================== -->
-    <!-- TAB 4: PORTFOLIO ANALYTICS                 -->
+    <!-- TAB 3: PORTFOLIO ANALYTICS                 -->
     <!-- ========================================== -->
     <section id="analytics-page" class="page-section">
       <div class="metric-grid">
@@ -890,7 +941,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 5: COST SIMULATION                     -->
+    <!-- TAB 4: COST SIMULATION                     -->
     <!-- ========================================== -->
     <section id="calculator-page" class="page-section">
       <div class="card">
@@ -1008,7 +1059,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 6: PORTFOLIO BUILDER (NEW)             -->
+    <!-- TAB 5: PORTFOLIO BUILDER                   -->
     <!-- ========================================== -->
     <section id="builder-page" class="page-section">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:0.75rem;">
@@ -1164,7 +1215,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 7: WATCHLISTS (NEW)                    -->
+    <!-- TAB 6: WATCHLISTS                          -->
     <!-- ========================================== -->
     <section id="watchlists-page" class="page-section">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:0.75rem;">
@@ -1303,7 +1354,7 @@
             <span class="badge badge-rose">3 Unread Alerts</span>
           </div>
 
-          <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          <div style="flex-direction:column; display:flex; gap:0.75rem;">
             <div style="background:var(--bg-surface); padding:0.85rem; border-radius:8px; border-left:3px solid var(--neon-rose);">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
                 <span class="badge badge-rose"><i class="fa-solid fa-bolt"></i> HIGH SEVERITY</span>
@@ -1336,7 +1387,7 @@
     </section>
 
     <!-- ========================================== -->
-    <!-- TAB 8: SAVED SCREENERS (NEW)               -->
+    <!-- TAB 7: SAVED SCREENERS                     -->
     <!-- ========================================== -->
     <section id="screeners-page" class="page-section">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:0.75rem;">
@@ -1549,17 +1600,27 @@
   <div id="toastContainer" class="toast-container"></div>
 
   <script>
-    // --- Fund Master Database ---
+    // --- Fund Master Database (Expanded to 12 Funds to showcase 10 rows per page pagination) ---
     const fundMasterData = [
       {
         seriesId: "S000006037",
         cik: "0000036405",
         ticker: "VFIAX",
+        cusip: "922908710",
         name: "Vanguard 500 Index Fund",
         family: "Vanguard Group Inc",
         strategyType: "PASSIVE",
         assetClass: "Equity",
         benchmark: "S&P 500 Index",
+        shareBalance: "125,480,000",
+        marketValueUsd: "$512,450,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0001193125-25-012345",
+        mgmtFee: "0.03%",
+        netExpense: "0.04%",
+        bestQtr: "+20.54%", bestPeriod: "2020-Q2",
+        worstQtr: "-19.60%", worstPeriod: "2020-Q1",
         benchmarks: [
           { name: "S&P 500 Index", provider: "S&P Dow Jones", isPrimary: true, role: "Regulatory Mandate" },
           { name: "Russell 1000 Index", provider: "FTSE Russell", isPrimary: false, role: "Large Cap Peer Benchmark" },
@@ -1573,14 +1634,8 @@
           returnYear03: "+11.23%",
           returnYear05: "+15.05%"
         },
-        cadence: "ANNUAL",
-        accession: "0001193125-25-012345",
-        mgmtFee: "0.03%",
-        netExpense: "0.04%",
-        bestQtr: "+20.54%", bestPeriod: "2020-Q2",
-        worstQtr: "-19.60%", worstPeriod: "2020-Q1",
         objective: "The fund seeks to track the performance of a benchmark index that measures the investment return of large-capitalization stocks.",
-        strategy: "The fund employs an indexing investment approach designed to track the performance of the S&P 500 Index, a widely recognized benchmark of U.S. stock market performance that is dominated by the stocks of large U.S. companies. The fund attempts to replicate the target index by investing all, or substantially all, of its assets in the stocks that make up the index.",
+        strategy: "The fund employs an indexing investment approach designed to track the performance of the S&P 500 Index, a widely recognized benchmark of U.S. stock market performance.",
         annualReturns: [
           { year: "2019", val: 31.49 },
           { year: "2020", val: 18.40 },
@@ -1589,21 +1644,57 @@
           { year: "2023", val: 26.29 },
           { year: "2024", val: 25.02 }
         ],
-        baseExpenseFactor: { y1: 4, y3: 13, y5: 23, y10: 51, feeRate: 0.0004, mgmt: "0.03%", other: "0.01%", b12: "None" }
+        baseExpenseFactor: { y1: 4, y3: 13, y5: 23, y10: 51, feeRate: 0.0004, mgmt: "0.03%", other: "0.01%", b12: "None" },
+        holdings: [
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "12,410,200", value: "$5,460,488,000", weight: "7.15%" },
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "24,800,100", value: "$5,332,021,500", weight: "6.98%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "38,100,500", value: "$4,876,864,000", weight: "6.38%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "18,450,000", value: "$3,413,250,000", weight: "4.47%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "11,200,300", value: "$1,848,049,500", weight: "2.42%" },
+          { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "6,410,000", value: "$3,717,800,000", weight: "2.35%" },
+          { title: "ALPHABET INC CLASS C", cusip: "02079K107", ticker: "GOOG", cat: "EQUITY", shares: "9,640,000", value: "$1,609,880,000", weight: "2.05%" },
+          { title: "BERKSHIRE HATHAWAY INC", cusip: "084670702", ticker: "BRK.B", cat: "EQUITY", shares: "3,810,000", value: "$1,714,500,000", weight: "1.75%" },
+          { title: "BROADCOM INC", cusip: "11135F101", ticker: "AVGO", cat: "EQUITY", shares: "4,200,000", value: "$1,386,000,000", weight: "1.52%" },
+          { title: "TESLA INC", cusip: "88160R101", ticker: "TSLA", cat: "EQUITY", shares: "6,800,000", value: "$1,428,000,000", weight: "1.48%" },
+          { title: "ELI LILLY & CO", cusip: "532457108", ticker: "LLY", cat: "EQUITY", shares: "1,820,000", value: "$1,419,600,000", weight: "1.44%" },
+          { title: "JPMORGAN CHASE & CO", cusip: "46625H100", ticker: "JPM", cat: "EQUITY", shares: "5,800,000", value: "$1,218,000,000", weight: "1.28%" },
+          { title: "EXXON MOBIL CORP", cusip: "30231G102", ticker: "XOM", cat: "EQUITY", shares: "8,100,000", value: "$939,600,000", weight: "1.02%" },
+          { title: "UNITEDHEALTH GROUP INC", cusip: "91324P102", ticker: "UNH", cat: "EQUITY", shares: "1,750,000", value: "$910,000,000", weight: "0.98%" },
+          { title: "VISA INC CLASS A", cusip: "92826C839", ticker: "V", cat: "EQUITY", shares: "3,100,000", value: "$868,000,000", weight: "0.94%" },
+          { title: "PROCTER & GAMBLE CO", cusip: "742718109", ticker: "PG", cat: "EQUITY", shares: "4,500,000", value: "$765,000,000", weight: "0.82%" },
+          { title: "MASTERCARD INC", cusip: "57636Q104", ticker: "MA", cat: "EQUITY", shares: "1,720,000", value: "$808,400,000", weight: "0.80%" },
+          { title: "COSTCO WHOLESALE CORP", cusip: "22160K105", ticker: "COST", cat: "EQUITY", shares: "840,000", value: "$756,000,000", weight: "0.78%" },
+          { title: "JOHNSON & JOHNSON", cusip: "478160104", ticker: "JNJ", cat: "EQUITY", shares: "4,600,000", value: "$736,000,000", weight: "0.76%" },
+          { title: "HOME DEPOT INC", cusip: "437076102", ticker: "HD", cat: "EQUITY", shares: "1,900,000", value: "$722,000,000", weight: "0.75%" },
+          { title: "ABBVIE INC", cusip: "00287Y109", ticker: "ABBV", cat: "EQUITY", shares: "3,300,000", value: "$627,000,000", weight: "0.68%" },
+          { title: "WALMART INC", cusip: "931142103", ticker: "WMT", cat: "EQUITY", shares: "7,800,000", value: "$624,000,000", weight: "0.67%" },
+          { title: "MERCK & CO INC", cusip: "58933Y105", ticker: "MRK", cat: "EQUITY", shares: "4,700,000", value: "$517,000,000", weight: "0.55%" },
+          { title: "CHEVRON CORP", cusip: "166764100", ticker: "CVX", cat: "EQUITY", shares: "3,400,000", value: "$510,000,000", weight: "0.54%" },
+          { title: "SALESFORCE INC", cusip: "79466L302", ticker: "CRM", cat: "EQUITY", shares: "1,800,000", value: "$504,000,000", weight: "0.53%" }
+        ]
       },
       {
         seriesId: "S000002157",
         cik: "0000030146",
         ticker: "FCNTX",
+        cusip: "316071109",
         name: "Fidelity Contrafund",
         family: "Fidelity Management & Research",
         strategyType: "ACTIVE",
         assetClass: "Equity",
         benchmark: "S&P 500 Index",
+        shareBalance: "82,140,500",
+        marketValueUsd: "$134,800,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0000030146-26-000140",
+        mgmtFee: "0.45%",
+        netExpense: "0.55%",
+        bestQtr: "+24.12%", bestPeriod: "2020-Q2",
+        worstQtr: "-17.80%", worstPeriod: "2022-Q2",
         benchmarks: [
           { name: "S&P 500 Index", provider: "S&P Dow Jones", isPrimary: true, role: "Regulatory Standard" },
-          { name: "Russell 1000 Growth Index", provider: "FTSE Russell", isPrimary: false, role: "Style Categorization" },
-          { name: "Lipper Large-Cap Growth Funds Index", provider: "Lipper", isPrimary: false, role: "Peer Group Universe" }
+          { name: "Russell 1000 Growth Index", provider: "FTSE Russell", isPrimary: false, role: "Style Categorization" }
         ],
         primaryBenchmarkMetrics: {
           expenseRatio: "0.00%",
@@ -1613,14 +1704,8 @@
           returnYear03: "+11.23%",
           returnYear05: "+15.05%"
         },
-        cadence: "ANNUAL",
-        accession: "0000030146-26-000140",
-        mgmtFee: "0.45%",
-        netExpense: "0.55%",
-        bestQtr: "+24.12%", bestPeriod: "2020-Q2",
-        worstQtr: "-17.80%", worstPeriod: "2022-Q2",
         objective: "The fund seeks capital appreciation through active investment selection in common stocks.",
-        strategy: "The fund invests primarily in common stocks of companies whose value Fidelity Management & Research Company LLC believes is not fully recognized by the public. The manager uses fundamental analysis of factors such as each issuer's financial condition, industry position, and market conditions.",
+        strategy: "The fund invests primarily in common stocks of companies whose value Fidelity believes is not fully recognized by the public.",
         annualReturns: [
           { year: "2019", val: 29.98 },
           { year: "2020", val: 32.58 },
@@ -1629,20 +1714,392 @@
           { year: "2023", val: 39.28 },
           { year: "2024", val: 28.45 }
         ],
-        baseExpenseFactor: { y1: 56, y3: 176, y5: 307, y10: 689, feeRate: 0.0055, mgmt: "0.45%", other: "0.10%", b12: "None" }
+        baseExpenseFactor: { y1: 56, y3: 176, y5: 307, y10: 689, feeRate: 0.0055, mgmt: "0.45%", other: "0.10%", b12: "None" },
+        holdings: [
+          { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "14,200,000", value: "$8,540,000,000", weight: "9.52%" },
+          { title: "BERKSHIRE HATHAWAY INC", cusip: "084670702", ticker: "BRK.A", cat: "EQUITY", shares: "11,500", value: "$7,820,000,000", weight: "7.10%" },
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "12,900,000", value: "$5,676,000,000", weight: "6.85%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "19,800,000", value: "$3,663,000,000", weight: "5.12%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "21,500,000", value: "$2,752,000,000", weight: "4.80%" },
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "18,200,000", value: "$3,913,000,000", weight: "4.55%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "16,400,000", value: "$2,706,000,000", weight: "3.90%" },
+          { title: "ELI LILLY & CO", cusip: "532457108", ticker: "LLY", cat: "EQUITY", shares: "3,100,000", value: "$2,418,000,000", weight: "3.45%" },
+          { title: "UNITEDHEALTH GROUP INC", cusip: "91324P102", ticker: "UNH", cat: "EQUITY", shares: "3,800,000", value: "$1,976,000,000", weight: "2.80%" },
+          { title: "JPMORGAN CHASE & CO", cusip: "46625H100", ticker: "JPM", cat: "EQUITY", shares: "8,900,000", value: "$1,869,000,000", weight: "2.65%" },
+          { title: "VISA INC CLASS A", cusip: "92826C839", ticker: "V", cat: "EQUITY", shares: "5,400,000", value: "$1,512,000,000", weight: "2.15%" },
+          { title: "CHIPOTLE MEXICAN GRILL", cusip: "169656105", ticker: "CMG", cat: "EQUITY", shares: "24,000,000", value: "$1,392,000,000", weight: "1.95%" },
+          { title: "MASTERCARD INC", cusip: "57636Q104", ticker: "MA", cat: "EQUITY", shares: "2,900,000", value: "$1,363,000,000", weight: "1.90%" },
+          { title: "ADOBE INC", cusip: "00724F101", ticker: "ADBE", cat: "EQUITY", shares: "2,600,000", value: "$1,274,000,000", weight: "1.78%" },
+          { title: "SERVICENOW INC", cusip: "81762P102", ticker: "NOW", cat: "EQUITY", shares: "1,400,000", value: "$1,190,000,000", weight: "1.65%" },
+          { title: "ASML HOLDING NV", cusip: "N07059210", ticker: "ASML", cat: "EQUITY", shares: "1,500,000", value: "$1,095,000,000", weight: "1.52%" },
+          { title: "SYNOPSYS INC", cusip: "871607107", ticker: "SNPS", cat: "EQUITY", shares: "1,850,000", value: "$962,000,000", weight: "1.34%" },
+          { title: "INTUIT INC", cusip: "461202103", ticker: "INTU", cat: "EQUITY", shares: "1,450,000", value: "$913,500,000", weight: "1.27%" },
+          { title: "VERTEX PHARMACEUTICALS", cusip: "92532F100", ticker: "VRTX", cat: "EQUITY", shares: "1,900,000", value: "$874,000,000", weight: "1.21%" },
+          { title: "KLA CORP", cusip: "482480100", ticker: "KLAC", cat: "EQUITY", shares: "1,100,000", value: "$770,000,000", weight: "1.08%" }
+        ]
+      },
+      {
+        seriesId: "S000003445",
+        cik: "0000884394",
+        ticker: "SPY",
+        cusip: "78462F103",
+        name: "SPDR S&P 500 ETF Trust",
+        family: "State Street Global Advisors",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "S&P 500 Index",
+        shareBalance: "984,200,000",
+        marketValueUsd: "$582,100,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0000884394-25-000021",
+        mgmtFee: "0.09%",
+        netExpense: "0.0945%",
+        bestQtr: "+20.50%", bestPeriod: "2020-Q2",
+        worstQtr: "-19.64%", worstPeriod: "2020-Q1",
+        benchmarks: [{ name: "S&P 500 Index", provider: "S&P Dow Jones", isPrimary: true, role: "Core Mandate" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "24.1%", ltdRatio: "0.12%", returnYear01: "+25.02%", returnYear03: "+11.23%", returnYear05: "+15.05%" },
+        objective: "Provide investment results that correspond generally to the price and yield performance of the S&P 500 Index.",
+        strategy: "Holds all component stocks of the S&P 500 Index in approximately the same proportions as their index weightings.",
+        annualReturns: [{ year: "2021", val: 28.59 }, { year: "2022", val: -18.17 }, { year: "2023", val: 26.18 }, { year: "2024", val: 24.91 }],
+        baseExpenseFactor: { y1: 10, y3: 31, y5: 54, y10: 122, feeRate: 0.000945, mgmt: "0.09%", other: "0.0045%", b12: "None" },
+        holdings: [
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "14,120,000", value: "$6,212,800,000", weight: "7.14%" },
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "28,100,000", value: "$6,041,500,000", weight: "6.95%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "43,200,000", value: "$5,529,600,000", weight: "6.36%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "21,000,000", value: "$3,885,000,000", weight: "4.46%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "12,800,000", value: "$2,112,000,000", weight: "2.43%" },
+          { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "7,300,000", value: "$2,044,000,000", weight: "2.35%" },
+          { title: "ALPHABET INC CLASS C", cusip: "02079K107", ticker: "GOOG", cat: "EQUITY", shares: "11,000,000", value: "$1,837,000,000", weight: "2.05%" },
+          { title: "BERKSHIRE HATHAWAY INC", cusip: "084670702", ticker: "BRK.B", cat: "EQUITY", shares: "4,300,000", value: "$1,935,000,000", weight: "1.74%" },
+          { title: "BROADCOM INC", cusip: "11135F101", ticker: "AVGO", cat: "EQUITY", shares: "4,800,000", value: "$1,584,000,000", weight: "1.52%" },
+          { title: "TESLA INC", cusip: "88160R101", ticker: "TSLA", cat: "EQUITY", shares: "7,700,000", value: "$1,617,000,000", weight: "1.47%" },
+          { title: "ELI LILLY & CO", cusip: "532457108", ticker: "LLY", cat: "EQUITY", shares: "2,050,000", value: "$1,599,000,000", weight: "1.44%" },
+          { title: "JPMORGAN CHASE & CO", cusip: "46625H100", ticker: "JPM", cat: "EQUITY", shares: "6,600,000", value: "$1,386,000,000", weight: "1.28%" }
+        ]
+      },
+      {
+        seriesId: "S000005421",
+        cik: "0001064642",
+        ticker: "QQQ",
+        cusip: "46090E103",
+        name: "Invesco QQQ Trust",
+        family: "Invesco Capital Management",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "NASDAQ-100 Index",
+        shareBalance: "540,110,000",
+        marketValueUsd: "$298,400,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0001064642-25-000115",
+        mgmtFee: "0.20%",
+        netExpense: "0.20%",
+        bestQtr: "+30.50%", bestPeriod: "2020-Q2",
+        worstQtr: "-22.40%", worstPeriod: "2022-Q2",
+        benchmarks: [{ name: "NASDAQ-100 Index", provider: "Nasdaq Inc", isPrimary: true, role: "Core Mandate" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "14.2%", ltdRatio: "0.45%", returnYear01: "+28.10%", returnYear03: "+13.40%", returnYear05: "+18.20%" },
+        objective: "Provide investment results corresponding generally to the performance of the Nasdaq-100 Index.",
+        strategy: "Replicates non-financial companies listed on The Nasdaq Stock Market based on market capitalization.",
+        annualReturns: [{ year: "2021", val: 27.24 }, { year: "2022", val: -32.58 }, { year: "2023", val: 54.85 }, { year: "2024", val: 25.80 }],
+        baseExpenseFactor: { y1: 20, y3: 64, y5: 113, y10: 255, feeRate: 0.0020, mgmt: "0.20%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "19,400,000", value: "$4,171,000,000", weight: "8.90%" },
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "9,100,000", value: "$4,004,000,000", weight: "8.45%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "28,200,000", value: "$3,609,600,000", weight: "7.75%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "14,300,000", value: "$2,645,500,000", weight: "5.60%" },
+          { title: "BROADCOM INC", cusip: "11135F101", ticker: "AVGO", cat: "EQUITY", shares: "3,800,000", value: "$1,254,000,000", weight: "4.85%" },
+          { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "4,600,000", value: "$1,288,000,000", weight: "4.75%" },
+          { title: "TESLA INC", cusip: "88160R101", ticker: "TSLA", cat: "EQUITY", shares: "4,800,000", value: "$1,008,000,000", weight: "3.20%" },
+          { title: "COSTCO WHOLESALE CORP", cusip: "22160K105", ticker: "COST", cat: "EQUITY", shares: "1,100,000", value: "$990,000,000", weight: "2.40%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "6,200,000", value: "$1,023,000,000", weight: "2.35%" },
+          { title: "ALPHABET INC CLASS C", cusip: "02079K107", ticker: "GOOG", cat: "EQUITY", shares: "5,800,000", value: "$968,600,000", weight: "2.25%" },
+          { title: "ADVANCED MICRO DEVICES", cusip: "007903107", ticker: "AMD", cat: "EQUITY", shares: "4,900,000", value: "$784,000,000", weight: "1.95%" },
+          { title: "NETFLIX INC", cusip: "64110L106", ticker: "NFLX", cat: "EQUITY", shares: "890,000", value: "$623,000,000", weight: "1.85%" },
+          { title: "QUALCOMM INC", cusip: "747525103", ticker: "QCOM", cat: "EQUITY", shares: "3,200,000", value: "$544,000,000", weight: "1.60%" },
+          { title: "CISCO SYSTEMS INC", cusip: "17275R102", ticker: "CSCO", cat: "EQUITY", shares: "8,900,000", value: "$489,500,000", weight: "1.45%" },
+          { title: "ADOBE INC", cusip: "00724F101", ticker: "ADBE", cat: "EQUITY", shares: "920,000", value: "$450,800,000", weight: "1.40%" }
+        ]
+      },
+      {
+        seriesId: "S000007812",
+        cik: "0000036405",
+        ticker: "VTI",
+        cusip: "922908769",
+        name: "Vanguard Total Stock Market ETF",
+        family: "Vanguard Group Inc",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "CRSP US Total Market Index",
+        shareBalance: "1,450,000,000",
+        marketValueUsd: "$410,200,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0001193125-25-012999",
+        mgmtFee: "0.03%",
+        netExpense: "0.03%",
+        bestQtr: "+22.10%", bestPeriod: "2020-Q2",
+        worstQtr: "-19.50%", worstPeriod: "2020-Q1",
+        benchmarks: [{ name: "CRSP US Total Market Index", provider: "CRSP", isPrimary: true, role: "Benchmark" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "18.5%", ltdRatio: "0.30%", returnYear01: "+24.80%", returnYear03: "+10.90%", returnYear05: "+14.60%" },
+        objective: "Tracks performance of entire investable U.S. stock market.",
+        strategy: "Invests in large, mid, small, and micro-cap stocks regularly traded on NYSE and Nasdaq.",
+        annualReturns: [{ year: "2021", val: 25.72 }, { year: "2022", val: -19.51 }, { year: "2023", val: 26.00 }, { year: "2024", val: 24.30 }],
+        baseExpenseFactor: { y1: 3, y3: 10, y5: 17, y10: 39, feeRate: 0.0003, mgmt: "0.03%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "8,900,000", value: "$3,916,000,000", weight: "6.20%" },
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "17,800,000", value: "$3,827,000,000", weight: "6.05%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "27,300,000", value: "$3,494,400,000", weight: "5.50%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "13,200,000", value: "$2,442,000,000", weight: "3.85%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "8,100,000", value: "$1,336,500,000", weight: "2.10%" },
+          { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "4,600,000", value: "$1,288,000,000", weight: "2.05%" },
+          { title: "BERKSHIRE HATHAWAY INC", cusip: "084670702", ticker: "BRK.B", cat: "EQUITY", shares: "2,700,000", value: "$1,215,000,000", weight: "1.55%" },
+          { title: "BROADCOM INC", cusip: "11135F101", ticker: "AVGO", cat: "EQUITY", shares: "3,000,000", value: "$990,000,000", weight: "1.32%" },
+          { title: "TESLA INC", cusip: "88160R101", ticker: "TSLA", cat: "EQUITY", shares: "4,900,000", value: "$1,029,000,000", weight: "1.28%" },
+          { title: "JPMORGAN CHASE & CO", cusip: "46625H100", ticker: "JPM", cat: "EQUITY", shares: "4,150,000", value: "$871,500,000", weight: "1.12%" },
+          { title: "ELI LILLY & CO", cusip: "532457108", ticker: "LLY", cat: "EQUITY", shares: "1,300,000", value: "$1,014,000,000", weight: "1.10%" }
+        ]
+      },
+      {
+        seriesId: "S000008920",
+        cik: "0000036405",
+        ticker: "BND",
+        cusip: "921937835",
+        name: "Vanguard Total Bond Market ETF",
+        family: "Vanguard Group Inc",
+        strategyType: "PASSIVE",
+        assetClass: "Fixed Income",
+        benchmark: "Bloomberg US Aggregate Float Adjusted",
+        shareBalance: "920,000,000",
+        marketValueUsd: "$105,400,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0001193125-25-014421",
+        mgmtFee: "0.03%",
+        netExpense: "0.03%",
+        bestQtr: "+6.80%", bestPeriod: "2023-Q4",
+        worstQtr: "-5.90%", worstPeriod: "2022-Q1",
+        benchmarks: [{ name: "Bloomberg US Aggregate", provider: "Bloomberg", isPrimary: true, role: "Broad Bond Benchmark" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "8.1%", ltdRatio: "1.05%", returnYear01: "+5.10%", returnYear03: "-1.20%", returnYear05: "+0.80%" },
+        objective: "Tracks broad, market-weighted bond index of investment-grade fixed income securities.",
+        strategy: "Replicates government, corporate, and international dollar-denominated bonds with maturities > 1 year.",
+        annualReturns: [{ year: "2021", val: -1.67 }, { year: "2022", val: -13.11 }, { year: "2023", val: 5.68 }, { year: "2024", val: 4.85 }],
+        baseExpenseFactor: { y1: 3, y3: 10, y5: 17, y10: 39, feeRate: 0.0003, mgmt: "0.03%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "US TREASURY N/B 4.25% 2029", cusip: "912828ZT3", ticker: "US-T", cat: "FIXED INCOME", shares: "50,000,000", value: "$49,800,000", weight: "0.48%" },
+          { title: "US TREASURY N/B 4.125% 2031", cusip: "912828ZV8", ticker: "US-T", cat: "FIXED INCOME", shares: "48,000,000", value: "$47,600,000", weight: "0.45%" },
+          { title: "FNMA POOL MA4890 5.5%", cusip: "3136BH452", ticker: "FNMA", cat: "MORTGAGE", shares: "38,000,000", value: "$38,150,000", weight: "0.36%" },
+          { title: "US TREASURY N/B 3.875% 2033", cusip: "912828ZW6", ticker: "US-T", cat: "FIXED INCOME", shares: "36,000,000", value: "$35,400,000", weight: "0.34%" },
+          { title: "FHLMC POOL SD0891 5.0%", cusip: "3132WN801", ticker: "FHLMC", cat: "MORTGAGE", shares: "30,000,000", value: "$29,800,000", weight: "0.28%" },
+          { title: "JPMORGAN CHASE & CO 4.45% 2028", cusip: "46625HR91", ticker: "JPM", cat: "CORPORATE", shares: "15,000,000", value: "$14,900,000", weight: "0.14%" },
+          { title: "BANK OF AMERICA CORP 4.37% 2029", cusip: "06051GF72", ticker: "BAC", cat: "CORPORATE", shares: "14,000,000", value: "$13,850,000", weight: "0.13%" }
+        ]
+      },
+      {
+        seriesId: "S000009115",
+        cik: "0000030146",
+        ticker: "FXAIX",
+        cusip: "315911750",
+        name: "Fidelity 500 Index Fund",
+        family: "Fidelity Management & Research",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "S&P 500 Index",
+        shareBalance: "980,450,000",
+        marketValueUsd: "$480,200,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0000030146-26-000411",
+        mgmtFee: "0.015%",
+        netExpense: "0.015%",
+        bestQtr: "+20.55%", bestPeriod: "2020-Q2",
+        worstQtr: "-19.61%", worstPeriod: "2020-Q1",
+        benchmarks: [{ name: "S&P 500 Index", provider: "S&P Dow Jones", isPrimary: true, role: "Core Mandate" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "20.1%", ltdRatio: "0.10%", returnYear01: "+25.04%", returnYear03: "+11.25%", returnYear05: "+15.08%" },
+        objective: "Provide investment results that correspond to the total return of common stocks in the S&P 500 Index.",
+        strategy: "Normally invests at least 80% of assets in common stocks included in the S&P 500 Index.",
+        annualReturns: [{ year: "2021", val: 28.69 }, { year: "2022", val: -18.13 }, { year: "2023", val: 26.29 }, { year: "2024", val: 25.04 }],
+        baseExpenseFactor: { y1: 2, y3: 5, y5: 9, y10: 20, feeRate: 0.00015, mgmt: "0.015%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "11,500,000", value: "$5,060,000,000", weight: "7.15%" },
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "23,100,000", value: "$4,966,500,000", weight: "6.97%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "35,400,000", value: "$4,531,200,000", weight: "6.37%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "17,200,000", value: "$3,182,000,000", weight: "4.47%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "10,400,000", value: "$1,716,000,000", weight: "2.42%" },
+          { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "5,950,000", value: "$1,666,000,000", weight: "2.34%" },
+          { title: "ALPHABET INC CLASS C", cusip: "02079K107", ticker: "GOOG", cat: "EQUITY", shares: "9,000,000", value: "$1,503,000,000", weight: "2.05%" },
+          { title: "BERKSHIRE HATHAWAY INC", cusip: "084670702", ticker: "BRK.B", cat: "EQUITY", shares: "3,550,000", value: "$1,597,500,000", weight: "1.74%" }
+        ]
+      },
+      {
+        seriesId: "S000010444",
+        cik: "0000884394",
+        ticker: "AGG",
+        cusip: "464287226",
+        name: "iShares Core U.S. Aggregate Bond ETF",
+        family: "BlackRock Fund Advisors",
+        strategyType: "PASSIVE",
+        assetClass: "Fixed Income",
+        benchmark: "Bloomberg US Aggregate Bond",
+        shareBalance: "890,120,000",
+        marketValueUsd: "$94,300,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0000884394-25-001092",
+        mgmtFee: "0.03%",
+        netExpense: "0.03%",
+        bestQtr: "+6.72%", bestPeriod: "2023-Q4",
+        worstQtr: "-5.93%", worstPeriod: "2022-Q1",
+        benchmarks: [{ name: "Bloomberg US Aggregate", provider: "Bloomberg", isPrimary: true, role: "Core Mandate" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "7.8%", ltdRatio: "0.95%", returnYear01: "+5.15%", returnYear03: "-1.18%", returnYear05: "+0.85%" },
+        objective: "Tracks the investment results of an index composed of total U.S. investment-grade bond market.",
+        strategy: "Representative sampling indexing strategy to match aggregate duration, sector, and credit profiles.",
+        annualReturns: [{ year: "2021", val: -1.77 }, { year: "2022", val: -13.06 }, { year: "2023", val: 5.65 }, { year: "2024", val: 4.88 }],
+        baseExpenseFactor: { y1: 3, y3: 10, y5: 17, y10: 39, feeRate: 0.0003, mgmt: "0.03%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "US TREASURY N/B 3.875% 2033", cusip: "91282CHJ4", ticker: "US-T", cat: "FIXED INCOME", shares: "40,000,000", value: "$39,500,000", weight: "0.42%" },
+          { title: "US TREASURY N/B 4.0% 2030", cusip: "91282CHK1", ticker: "US-T", cat: "FIXED INCOME", shares: "38,500,000", value: "$38,300,000", weight: "0.40%" },
+          { title: "UMBS 30YR TBA 5.5%", cusip: "01F052601", ticker: "UMBS", cat: "MORTGAGE", shares: "32,000,000", value: "$31,900,000", weight: "0.34%" },
+          { title: "GNMA II POOL 5.0%", cusip: "36179V401", ticker: "GNMA", cat: "MORTGAGE", shares: "25,000,000", value: "$24,700,000", weight: "0.26%" }
+        ]
+      },
+      {
+        seriesId: "S000011890",
+        cik: "0000036405",
+        ticker: "VUG",
+        cusip: "922908744",
+        name: "Vanguard Growth ETF",
+        family: "Vanguard Group Inc",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "CRSP US Large Cap Growth Index",
+        shareBalance: "410,000,000",
+        marketValueUsd: "$145,800,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0001193125-25-015500",
+        mgmtFee: "0.04%",
+        netExpense: "0.04%",
+        bestQtr: "+27.80%", bestPeriod: "2020-Q2",
+        worstQtr: "-22.10%", worstPeriod: "2022-Q2",
+        benchmarks: [{ name: "CRSP US Large Cap Growth", provider: "CRSP", isPrimary: true, role: "Style Benchmark" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "9.2%", ltdRatio: "0.60%", returnYear01: "+32.40%", returnYear03: "+12.80%", returnYear05: "+19.10%" },
+        objective: "Tracks the performance of the CRSP US Large Cap Growth Index.",
+        strategy: "Invests predominantly in large-cap growth companies in technology and consumer sectors.",
+        annualReturns: [{ year: "2021", val: 27.28 }, { year: "2022", val: -33.14 }, { year: "2023", val: 46.84 }, { year: "2024", val: 32.40 }],
+        baseExpenseFactor: { y1: 4, y3: 13, y5: 23, y10: 51, feeRate: 0.0004, mgmt: "0.04%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "12,100,000", value: "$2,601,500,000", weight: "12.80%" },
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "5,800,000", value: "$2,552,000,000", weight: "12.45%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "16,400,000", value: "$2,099,200,000", weight: "10.20%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "8,900,000", value: "$1,646,500,000", weight: "7.15%" },
+          { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "3,100,000", value: "$868,000,000", weight: "4.80%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "4,900,000", value: "$808,500,000", weight: "3.75%" },
+          { title: "ELI LILLY & CO", cusip: "532457108", ticker: "LLY", cat: "EQUITY", shares: "980,000", value: "$764,400,000", weight: "3.20%" },
+          { title: "TESLA INC", cusip: "88160R101", ticker: "TSLA", cat: "EQUITY", shares: "3,400,000", value: "$714,000,000", weight: "3.10%" }
+        ]
+      },
+      {
+        seriesId: "S000012301",
+        cik: "0000036405",
+        ticker: "VTV",
+        cusip: "922908736",
+        name: "Vanguard Value ETF",
+        family: "Vanguard Group Inc",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "CRSP US Large Cap Value Index",
+        shareBalance: "560,000,000",
+        marketValueUsd: "$122,500,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0001193125-25-016012",
+        mgmtFee: "0.04%",
+        netExpense: "0.04%",
+        bestQtr: "+14.50%", bestPeriod: "2020-Q4",
+        worstQtr: "-17.20%", worstPeriod: "2020-Q1",
+        benchmarks: [{ name: "CRSP US Large Cap Value", provider: "CRSP", isPrimary: true, role: "Style Benchmark" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "8.5%", ltdRatio: "0.75%", returnYear01: "+18.10%", returnYear03: "+9.20%", returnYear05: "+11.80%" },
+        objective: "Tracks the performance of the CRSP US Large Cap Value Index.",
+        strategy: "Invests in large-cap companies characterized by lower price/book and price/earnings ratios.",
+        annualReturns: [{ year: "2021", val: 26.16 }, { year: "2022", val: -2.15 }, { year: "2023", val: 9.28 }, { year: "2024", val: 18.10 }],
+        baseExpenseFactor: { y1: 4, y3: 13, y5: 23, y10: 51, feeRate: 0.0004, mgmt: "0.04%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "BERKSHIRE HATHAWAY INC", cusip: "084670702", ticker: "BRK.B", cat: "EQUITY", shares: "8,900,000", value: "$4,005,000,000", weight: "3.45%" },
+          { title: "JPMORGAN CHASE & CO", cusip: "46625H100", ticker: "JPM", cat: "EQUITY", shares: "14,200,000", value: "$2,982,000,000", weight: "2.55%" },
+          { title: "EXXON MOBIL CORP", cusip: "30231G102", ticker: "XOM", cat: "EQUITY", shares: "21,000,000", value: "$2,436,000,000", weight: "2.10%" },
+          { title: "UNITEDHEALTH GROUP INC", cusip: "91324P102", ticker: "UNH", cat: "EQUITY", shares: "4,600,000", value: "$2,392,000,000", weight: "2.05%" },
+          { title: "JOHNSON & JOHNSON", cusip: "478160104", ticker: "JNJ", cat: "EQUITY", shares: "12,100,000", value: "$1,936,000,000", weight: "1.75%" }
+        ]
+      },
+      {
+        seriesId: "S000013998",
+        cik: "0000030146",
+        ticker: "FBND",
+        cusip: "31607A801",
+        name: "Fidelity Total Bond ETF",
+        family: "Fidelity Management & Research",
+        strategyType: "ACTIVE",
+        assetClass: "Fixed Income",
+        benchmark: "Bloomberg US Universal Index",
+        shareBalance: "95,000,000",
+        marketValueUsd: "$8,900,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0000030146-26-000782",
+        mgmtFee: "0.36%",
+        netExpense: "0.36%",
+        bestQtr: "+7.20%", bestPeriod: "2023-Q4",
+        worstQtr: "-6.10%", worstPeriod: "2022-Q1",
+        benchmarks: [{ name: "Bloomberg US Universal", provider: "Bloomberg", isPrimary: true, role: "Universal Bond Standard" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "1.2%", ltdRatio: "18.40%", returnYear01: "+6.20%", returnYear03: "-0.80%", returnYear05: "+1.20%" },
+        objective: "Seeks a high level of current income while preserving capital through active credit selection.",
+        strategy: "Normally invests at least 80% of assets in debt securities of all types across both investment-grade and high-yield.",
+        annualReturns: [{ year: "2021", val: -1.25 }, { year: "2022", val: -12.80 }, { year: "2023", val: 6.85 }, { year: "2024", val: 6.20 }],
+        baseExpenseFactor: { y1: 37, y3: 116, y5: 202, y10: 456, feeRate: 0.0036, mgmt: "0.36%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "US TREASURY BOND 4.0% 2043", cusip: "912810TS3", ticker: "US-T", cat: "FIXED INCOME", shares: "10,000,000", value: "$9,950,000", weight: "1.12%" },
+          { title: "US TREASURY N/B 4.375% 2034", cusip: "91282CKA1", ticker: "US-T", cat: "FIXED INCOME", shares: "9,500,000", value: "$9,450,000", weight: "1.06%" },
+          { title: "GOLDMAN SACHS GROUP 4.22% 2029", cusip: "38141GZK4", ticker: "GS", cat: "CORPORATE", shares: "6,000,000", value: "$5,910,000", weight: "0.66%" },
+          { title: "MORGAN STANLEY 5.12% 2030", cusip: "6174468V8", ticker: "MS", cat: "CORPORATE", shares: "5,800,000", value: "$5,780,000", weight: "0.65%" }
+        ]
+      },
+      {
+        seriesId: "S000014210",
+        cik: "0000884394",
+        ticker: "IVV",
+        cusip: "464287200",
+        name: "iShares Core S&P 500 ETF",
+        family: "BlackRock Fund Advisors",
+        strategyType: "PASSIVE",
+        assetClass: "Equity",
+        benchmark: "S&P 500 Index",
+        shareBalance: "820,000,000",
+        marketValueUsd: "$490,000,000,000",
+        portfolioWeight: "100.0%",
+        cadence: "ANNUAL",
+        accession: "0000884394-25-001550",
+        mgmtFee: "0.03%",
+        netExpense: "0.03%",
+        bestQtr: "+20.54%", bestPeriod: "2020-Q2",
+        worstQtr: "-19.60%", worstPeriod: "2020-Q1",
+        benchmarks: [{ name: "S&P 500 Index", provider: "S&P Dow Jones", isPrimary: true, role: "Core Mandate" }],
+        primaryBenchmarkMetrics: { expenseRatio: "0.00%", aumRatio: "21.0%", ltdRatio: "0.08%", returnYear01: "+25.04%", returnYear03: "+11.24%", returnYear05: "+15.06%" },
+        objective: "Tracks the investment results of an index composed of large-capitalization U.S. equities.",
+        strategy: "Replicates the S&P 500 Index with ultra-low tracking error.",
+        annualReturns: [{ year: "2021", val: 28.70 }, { year: "2022", val: -18.14 }, { year: "2023", val: 26.28 }, { year: "2024", val: 25.04 }],
+        baseExpenseFactor: { y1: 3, y3: 10, y5: 17, y10: 39, feeRate: 0.0003, mgmt: "0.03%", other: "0.00%", b12: "None" },
+        holdings: [
+          { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "12,000,000", value: "$5,280,000,000", weight: "7.15%" },
+          { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "23,900,000", value: "$5,138,500,000", weight: "6.96%" },
+          { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "36,700,000", value: "$4,697,600,000", weight: "6.37%" },
+          { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "17,800,000", value: "$3,293,000,000", weight: "4.46%" },
+          { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "10,900,000", value: "$1,798,500,000", weight: "2.42%" }
+        ]
       }
     ];
 
-    const mockHoldings = [
-      { title: "MICROSOFT CORP", cusip: "594918104", ticker: "MSFT", cat: "EQUITY", shares: "12,410,200", value: "$5,460,488,000", weight: "7.15%" },
-      { title: "APPLE INC", cusip: "037833100", ticker: "AAPL", cat: "EQUITY", shares: "24,800,100", value: "$5,332,021,500", weight: "6.98%" },
-      { title: "NVIDIA CORP", cusip: "67066G104", ticker: "NVDA", cat: "EQUITY", shares: "38,100,500", value: "$4,876,864,000", weight: "6.38%" },
-      { title: "AMAZON COM INC", cusip: "023135106", ticker: "AMZN", cat: "EQUITY", shares: "18,450,000", value: "$3,413,250,000", weight: "4.47%" },
-      { title: "ALPHABET INC CLASS A", cusip: "02079K305", ticker: "GOOGL", cat: "EQUITY", shares: "11,200,300", value: "$1,848,049,500", weight: "2.42%" },
-      { title: "META PLATFORMS INC", cusip: "30303M102", ticker: "META", cat: "EQUITY", shares: "6,400,200", value: "$1,741,494,400", weight: "2.28%" }
-    ];
-
-    // --- Tab 6: Portfolio State ---
+    // --- Tab 5: Portfolio State ---
     const userPortfolios = {
       port_1: {
         id: "port_1",
@@ -1667,6 +2124,30 @@
 
     let currentFund = fundMasterData[0];
     let selectedSeriesId = fundMasterData[0].seriesId;
+    let expandedSeriesId = null;
+
+    // Pagination State
+    let currentPage = 1;
+    const rowsPerPage = 10;
+    let currentFilteredFunds = [...fundMasterData];
+
+    // Independent holdings pagination tracking per series
+    const holdingsPaginationState = {};
+    const HOLDINGS_ROWS_PER_PAGE = 5;
+
+    function getHoldingsPage(seriesId) {
+      if (!holdingsPaginationState[seriesId]) {
+        holdingsPaginationState[seriesId] = 1;
+      }
+      return holdingsPaginationState[seriesId];
+    }
+
+    function setHoldingsPage(seriesId, pageNum, totalPages) {
+      if (pageNum < 1) pageNum = 1;
+      if (pageNum > totalPages) pageNum = totalPages;
+      holdingsPaginationState[seriesId] = pageNum;
+      renderFundRegistry();
+    }
 
     // Chart.js Instances
     let barChartInstance = null;
@@ -1728,44 +2209,235 @@
       if (pageId === 'builder-page') renderPortfolioBuilder();
     }
 
-    // --- Tab 1: Fund Search ---
-    function renderFundRegistry(funds) {
+    // --- TAB 1: Master Fund Registry with Expandable Rows & 10 Rows/Page Pagination ---
+    function renderFundRegistry() {
       const tbody = document.getElementById("fundTableBody");
       tbody.innerHTML = "";
-      funds.forEach(f => {
+
+      const totalItems = currentFilteredFunds.length;
+      const totalPages = Math.ceil(totalItems / rowsPerPage) || 1;
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * rowsPerPage;
+      const endIndex = Math.min(startIndex + rowsPerPage, totalItems);
+      const pageSlice = currentFilteredFunds.slice(startIndex, endIndex);
+
+      // Render rows strictly adhering to: SERIES ID, TICKER, CUSIP, FUND NAME, ASSET CATEGORY, STRATEGY, CADENCE, STATUS
+      pageSlice.forEach(f => {
         const badgeClass = f.strategyType === 'PASSIVE' ? 'badge-passive' : 'badge-active';
+        const assetClassBadge = f.assetClass === 'Fixed Income' ? 'badge-purple' : 'badge-passive';
+        const isSelected = (f.seriesId === selectedSeriesId);
+        const isExpanded = (f.seriesId === expandedSeriesId);
+
+        // 1. Primary Row
         const tr = document.createElement("tr");
         tr.id = `row-${f.seriesId}`;
-        if (f.seriesId === selectedSeriesId) tr.classList.add("selected-row");
+        tr.className = `clickable-row ${isSelected ? 'selected-row' : ''} ${isExpanded ? 'expanded-row' : ''}`;
+        tr.onclick = () => toggleFundExpand(f.seriesId);
 
-        tr.onclick = () => onRowClick(f.seriesId);
         tr.innerHTML = `
           <td><strong style="color:var(--neon-cyan);">${f.seriesId}</strong></td>
           <td><span style="color:#fff; font-weight:700; background:rgba(0,240,255,0.08); padding:0.2rem 0.4rem; border-radius:4px;">${f.ticker}</span></td>
-          <td><strong>${f.name}</strong></td>
-          <td>${f.family}</td>
+          <td><code style="color:var(--neon-violet); font-size:0.75rem;">${f.cusip || 'N/A'}</code></td>
+          <td>
+            <div style="font-weight:700; color:#fff;">${f.name}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">${f.family}</div>
+          </td>
+          <td><span class="badge ${assetClassBadge}">${f.assetClass || 'Equity'}</span></td>
           <td><span class="badge ${badgeClass}">${f.strategyType}</span></td>
-          <td>${f.benchmark}</td>
           <td><span class="badge badge-cadence">${f.cadence}</span></td>
-          <td><span class="pos-val"><i class="fa-solid fa-circle" style="font-size:0.5rem"></i> Active</span></td>
+          <td>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span class="pos-val"><i class="fa-solid fa-circle" style="font-size:0.45rem"></i> Active</span>
+              <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}" style="color:var(--text-muted); font-size:0.75rem; margin-left:0.4rem;"></i>
+            </div>
+          </td>
         `;
         tbody.appendChild(tr);
+
+        // 2. Hidden / Expandable Row: PRIMARY BENCHMARK, SHARE BALANCE, MARKET VALUE (USD), PORTFOLIO WEIGHT
+        const detailTr = document.createElement("tr");
+        detailTr.id = `detail-row-${f.seriesId}`;
+        detailTr.className = `expandable-details-row ${isExpanded ? 'open' : ''}`;
+
+        // Independent holdings pagination calculations
+        const allHoldings = f.holdings || [];
+        const totalHoldingsCount = allHoldings.length;
+        const totalHoldingsPages = Math.ceil(totalHoldingsCount / HOLDINGS_ROWS_PER_PAGE) || 1;
+        const currentHoldingsPage = Math.min(getHoldingsPage(f.seriesId), totalHoldingsPages);
+        
+        const hStartIndex = (currentHoldingsPage - 1) * HOLDINGS_ROWS_PER_PAGE;
+        const hEndIndex = Math.min(hStartIndex + HOLDINGS_ROWS_PER_PAGE, totalHoldingsCount);
+        const holdingsPageSlice = allHoldings.slice(hStartIndex, hEndIndex);
+
+        const holdingsRows = holdingsPageSlice.map(h => `
+          <tr>
+            <td><strong>${h.title}</strong></td>
+            <td><code style="color:var(--neon-violet);">${h.cusip}</code></td>
+            <td><span style="color:var(--neon-cyan); font-weight:700;">${h.ticker}</span></td>
+            <td>${h.shares}</td>
+            <td>${h.value}</td>
+            <td><strong style="color:var(--neon-emerald);">${h.weight}</strong></td>
+          </tr>
+        `).join('');
+
+        // Generate nested holdings pagination buttons
+        let nestedPageButtonsHtml = `
+          <button class="page-btn" ${currentHoldingsPage === 1 ? 'disabled' : ''} onclick="event.stopPropagation(); setHoldingsPage('${f.seriesId}', ${currentHoldingsPage - 1}, ${totalHoldingsPages})">
+            <i class="fa-solid fa-angle-left"></i> Prev
+          </button>
+        `;
+        for (let p = 1; p <= totalHoldingsPages; p++) {
+          nestedPageButtonsHtml += `
+            <button class="page-btn ${p === currentHoldingsPage ? 'active' : ''}" onclick="event.stopPropagation(); setHoldingsPage('${f.seriesId}', ${p}, ${totalHoldingsPages})">
+              ${p}
+            </button>
+          `;
+        }
+        nestedPageButtonsHtml += `
+          <button class="page-btn" ${currentHoldingsPage === totalHoldingsPages ? 'disabled' : ''} onclick="event.stopPropagation(); setHoldingsPage('${f.seriesId}', ${currentHoldingsPage + 1}, ${totalHoldingsPages})">
+            Next <i class="fa-solid fa-angle-right"></i>
+          </button>
+        `;
+
+        detailTr.innerHTML = `
+          <td colspan="8" style="padding:0; border-bottom:1px solid var(--border-bright);">
+            <div class="nested-details-wrapper">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+                <div style="display:flex; align-items:center; gap:0.6rem;">
+                  <span class="badge badge-purple"><i class="fa-solid fa-cubes"></i> SEC FORM N-PORT DISCLOSURE</span>
+                  <span style="font-size:0.8rem; color:var(--text-muted);">Period End: 2025-03-31 | Accession: ${f.accession}</span>
+                </div>
+                <div class="api-badge"><span class="m-get">GET</span> /api/funds/${f.seriesId}/holdings</div>
+              </div>
+
+              <!-- Refined 4 Metrics in Hidden Row (ASSET CATEGORY moved to parent row) -->
+              <div class="nested-metrics-grid" style="grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));">
+                <div class="nested-metric-card">
+                  <div class="n-label">Primary Benchmark</div>
+                  <div class="n-val" style="color:var(--neon-cyan); font-size:1.05rem;">${f.benchmark}</div>
+                </div>
+                <div class="nested-metric-card">
+                  <div class="n-label">Share Balance</div>
+                  <div class="n-val" style="color:var(--neon-amber);">${f.shareBalance || '124,500,000'}</div>
+                </div>
+                <div class="nested-metric-card">
+                  <div class="n-label">Market Value (USD)</div>
+                  <div class="n-val" style="color:var(--neon-emerald);">${f.marketValueUsd || '$512.4 B'}</div>
+                </div>
+                <div class="nested-metric-card">
+                  <div class="n-label">Portfolio Weight</div>
+                  <div class="n-val" style="color:var(--neon-cyan);">${f.portfolioWeight || '100.0%'}</div>
+                </div>
+              </div>
+
+              <!-- Embedded N-PORT Constituent Holdings Table with Independent Pagination -->
+              <div style="background:rgba(8,15,30,0.85); border:1px solid var(--border-subtle); border-radius:8px; padding:0.85rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="display:flex; align-items:center; gap:0.6rem;">
+                    <strong style="font-size:0.8rem; color:#fff;"><i class="fa-solid fa-list-check" style="color:var(--neon-cyan)"></i> Top N-PORT Ingested Security Positions:</strong>
+                    <span style="font-size:0.72rem; color:var(--text-muted); background:rgba(255,255,255,0.05); padding:0.15rem 0.5rem; border-radius:4px;">${totalHoldingsCount} Securities Disclosed</span>
+                  </div>
+                  <button class="btn btn-secondary" style="padding:0.25rem 0.65rem; font-size:0.72rem;" onclick="event.stopPropagation(); selectFundAndInspect('${f.seriesId}')">Open Fund Dossier & Analytics &rarr;</button>
+                </div>
+                <div class="table-container">
+                  <table style="font-size:0.75rem;">
+                    <thead>
+                      <tr>
+                        <th>Security Title</th>
+                        <th>CUSIP</th>
+                        <th>Ticker</th>
+                        <th>Balance (Shares)</th>
+                        <th>Market Value (USD)</th>
+                        <th>Weight</th>
+                      </tr>
+                    </thead>
+                    <tbody>${holdingsRows || '<tr><td colspan="6" style="text-align:center; padding:0.5rem; color:var(--text-muted);">Standard index basket replication</td></tr>'}</tbody>
+                  </table>
+                </div>
+
+                <!-- Independent Nested Holdings Pagination Bar -->
+                <div class="pagination-bar" style="margin-top:0.6rem; padding-top:0.6rem;">
+                  <div class="pagination-info" style="font-size:0.72rem;">Showing ${totalHoldingsCount > 0 ? hStartIndex + 1 : 0}-${hEndIndex} of ${totalHoldingsCount} holdings (5 per page)</div>
+                  <div class="pagination-buttons" style="gap:0.25rem;">
+                    ${nestedPageButtonsHtml}
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </td>
+        `;
+        tbody.appendChild(detailTr);
       });
+
+      renderPaginationControls(startIndex, endIndex, totalItems, totalPages);
     }
 
-    function onRowClick(seriesId) {
-      selectedSeriesId = seriesId;
+    function toggleFundExpand(seriesId) {
+      if (expandedSeriesId === seriesId) {
+        expandedSeriesId = null;
+      } else {
+        expandedSeriesId = seriesId;
+        selectedSeriesId = seriesId;
+        const found = fundMasterData.find(f => f.seriesId === seriesId);
+        if (found) {
+          currentFund = found;
+          renderBenchmarkDrawer(found);
+          const sel = document.getElementById("calcFundSelector");
+          if (sel) sel.value = seriesId;
+        }
+      }
+      renderFundRegistry();
+    }
+
+    function selectFundAndInspect(seriesId) {
       const found = fundMasterData.find(f => f.seriesId === seriesId);
-      if (!found) return;
-      currentFund = found;
+      if (found) {
+        currentFund = found;
+        selectedSeriesId = seriesId;
+        switchPage('overview-page');
+      }
+    }
 
-      document.querySelectorAll('#fundTableBody tr').forEach(r => r.classList.remove('selected-row'));
-      const activeRow = document.getElementById(`row-${seriesId}`);
-      if (activeRow) activeRow.classList.add('selected-row');
+    function renderPaginationControls(start, end, total, totalPages) {
+      const infoEl = document.getElementById("paginationInfo");
+      const buttonsEl = document.getElementById("paginationButtons");
 
-      renderBenchmarkDrawer(found);
-      const sel = document.getElementById("calcFundSelector");
-      if (sel) sel.value = seriesId;
+      if (total === 0) {
+        infoEl.innerText = "No matching funds found";
+        buttonsEl.innerHTML = "";
+        return;
+      }
+
+      infoEl.innerText = `Showing ${start + 1}-${end} of ${total} Funds (10 per page)`;
+      buttonsEl.innerHTML = "";
+
+      // Previous button
+      const prevBtn = document.createElement("button");
+      prevBtn.className = "page-btn";
+      prevBtn.innerHTML = '<i class="fa-solid fa-angle-left"></i> Prev';
+      prevBtn.disabled = (currentPage === 1);
+      prevBtn.onclick = () => { currentPage--; renderFundRegistry(); };
+      buttonsEl.appendChild(prevBtn);
+
+      // Page numbers
+      for (let p = 1; p <= totalPages; p++) {
+        const pBtn = document.createElement("button");
+        pBtn.className = `page-btn ${p === currentPage ? 'active' : ''}`;
+        pBtn.innerText = p;
+        pBtn.onclick = () => { currentPage = p; renderFundRegistry(); };
+        buttonsEl.appendChild(pBtn);
+      }
+
+      // Next button
+      const nextBtn = document.createElement("button");
+      nextBtn.className = "page-btn";
+      nextBtn.innerHTML = 'Next <i class="fa-solid fa-angle-right"></i>';
+      nextBtn.disabled = (currentPage === totalPages);
+      nextBtn.onclick = () => { currentPage++; renderFundRegistry(); };
+      buttonsEl.appendChild(nextBtn);
     }
 
     function renderBenchmarkDrawer(fund) {
@@ -1790,15 +2462,23 @@
     function filterFunds() {
       const term = document.getElementById("searchInput").value.toLowerCase();
       const strat = document.getElementById("strategyFilter").value;
-      const filtered = fundMasterData.filter(f => {
-        const matchesTerm = f.name.toLowerCase().includes(term) || f.ticker.toLowerCase().includes(term) || f.seriesId.toLowerCase().includes(term);
+      const asset = document.getElementById("assetFilter").value;
+
+      currentFilteredFunds = fundMasterData.filter(f => {
+        const matchesTerm = f.name.toLowerCase().includes(term) ||
+                            f.ticker.toLowerCase().includes(term) ||
+                            f.seriesId.toLowerCase().includes(term) ||
+                            (f.cusip && f.cusip.toLowerCase().includes(term));
         const matchesStrat = !strat || f.strategyType === strat;
-        return matchesTerm && matchesStrat;
+        const matchesAsset = !asset || f.assetClass === asset;
+        return matchesTerm && matchesStrat && matchesAsset;
       });
-      renderFundRegistry(filtered);
+
+      currentPage = 1;
+      renderFundRegistry();
     }
 
-    // --- Tab 2: Overview Logic ---
+    // --- TAB 2: Fund Overview Logic ---
     function populateOverviewDetails() {
       document.getElementById("ovFundName").innerText = currentFund.name;
       document.getElementById("ovSeries").innerText = `Series: ${currentFund.seriesId} | Ticker: ${currentFund.ticker}`;
@@ -1835,31 +2515,6 @@
       }
     }
 
-    function renderHoldingsTable() {
-      const tbody = document.getElementById("holdingsTableBody");
-      tbody.innerHTML = "";
-      mockHoldings.forEach(h => {
-        tbody.innerHTML += `
-          <tr>
-            <td><strong>${h.title}</strong></td>
-            <td><code style="color:var(--neon-violet);">${h.cusip}</code></td>
-            <td><span style="color:var(--neon-cyan); font-weight:700;">${h.ticker}</span></td>
-            <td><span class="badge badge-passive">${h.cat}</span></td>
-            <td>${h.shares}</td>
-            <td>${h.value}</td>
-            <td>
-              <div style="display:flex; align-items:center; gap:0.5rem;">
-                <strong style="color:var(--neon-emerald);">${h.weight}</strong>
-                <div class="progress-track" style="width:60px; height:5px;">
-                  <div class="progress-fill" style="width:${parseFloat(h.weight) * 10}%; background:var(--neon-emerald);"></div>
-                </div>
-              </div>
-            </td>
-          </tr>
-        `;
-      });
-    }
-
     function renderOverviewCharts() {
       if (barChartInstance) barChartInstance.destroy();
       const ctx = document.getElementById("barChartCanvas").getContext("2d");
@@ -1889,6 +2544,7 @@
       });
     }
 
+    // --- TAB 3: Portfolio Analytics Logic ---
     function renderAnalyticsCharts() {
       if (pieChartInstance) pieChartInstance.destroy();
       const ctx = document.getElementById("sectorPieCanvas").getContext("2d");
@@ -1913,7 +2569,7 @@
       });
     }
 
-    // --- Tab 5: Cost Calculation Engine ---
+    // --- TAB 4: Cost Simulation Logic ---
     function onCalcFundChange() {
       const id = document.getElementById("calcFundSelector").value;
       const f = fundMasterData.find(x => x.seriesId === id);
@@ -2019,7 +2675,7 @@
       });
     }
 
-    // --- Tab 6: Portfolio Builder Logic ---
+    // --- TAB 5: Portfolio Builder Logic ---
     function renderPortfolioBuilder() {
       const port = userPortfolios[activePortfolioId];
       if (!port) return;
@@ -2235,7 +2891,7 @@
       triggerToast("POST", `/api/portfolios/${activePortfolioId}/holdings`, `Added ${ticker} (${name}) to ${port.name}`);
     }
 
-    // --- Tab 7: Watchlists Logic ---
+    // --- TAB 6: Watchlists Logic ---
     function toggleAlertRow(rowId) {
       const row = document.getElementById(rowId);
       row.style.display = (row.style.display === "table-row") ? "none" : "table-row";
@@ -2266,7 +2922,7 @@
       triggerToast("POST", `/api/watchlists/active/funds`, `Subscribed ${currentFund.ticker} (${currentFund.name}) to active alert monitor`);
     }
 
-    // --- Tab 8: Saved Screeners Logic ---
+    // --- TAB 7: Saved Screeners Logic ---
     function executeScreenerRun() {
       const minEr = document.getElementById("scMinEr").value;
       const maxEr = document.getElementById("scMaxEr").value;
@@ -2339,10 +2995,9 @@
 
     // --- Application Initialization ---
     window.onload = () => {
-      renderFundRegistry(fundMasterData);
+      renderFundRegistry();
       renderBenchmarkDrawer(currentFund);
       populateOverviewDetails();
-      renderHoldingsTable();
       calculateExpenses();
       renderPortfolioBuilder();
     };
