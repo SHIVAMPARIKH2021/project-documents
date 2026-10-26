@@ -31,61 +31,125 @@
 - Below is an example structure of an api/microservice repository.
 ```plantext
 fund-service/
-├── build.gradle
-├── gradlew
-├── gradlew.bat
-├── settings.gradle  
-├── .gitignore                     # Ignore .gradle/, build/, out/
-├── .editorconfig
-├── .gitattributes
-├── README.md
-├── Dockerfile
-├── .github/
-│   └── workflows/
-│       └── ci.yml
+.
+├── HELP.md                                                         # Spring Boot help & reference links
+├── ReadMe.md                                                       # Project documentation, setup, and run guide
+├── build.gradle                                                    # Gradle build configuration and dependencies
+├── gradle/
+│   └── wrapper/                                                    # Gradle wrapper files for reproducible builds
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── gradlew                                                         # Unix execution wrapper script
+├── gradlew.bat                                                     # Windows execution wrapper batch script
+├── settings.gradle                                                 # Gradle multi-project / root project definitions
 └── src/
     ├── main/
-    │   ├── java/funds/
-    │   │   ├── FundServiceApplication.java
+    │   ├── java/sec/financials/
+    │   │   ├── FundServiceApplication.java                         # Spring Boot application entry point (@SpringBootApplication)
     │   │   │
-    │   │   ├── domain/                         # Pure Business Logic (No Spring/JPA dependencies)
-    │   │   │   ├── model/                      # Aggregate Roots & Entities (Fund, Benchmark)
-    │   │   │   ├── valueobject/                # Value Objects (Ticker, ExpenseRatio, Cusip)
-    │   │   │   ├── event/                      # Domain Events (FundCreatedEvent, WeightRebalancedEvent)
-    │   │   │   ├── repository/                 # Pure Java Interfaces (FundRepository.java)
-    │   │   │   └── service/                    # Domain Services (Complex cross-aggregate calculations)
+    │   │   ├── api/                                                # Primary/Inbound Driving Adapter (Presentation Layer)
+    │   │   │   ├── controller/                                     # REST controllers handling HTTP requests and status codes
+    │   │   │   │   ├── BenchmarkController.java                    # Exposes REST endpoints for Benchmark resources
+    │   │   │   │   └── FundController.java                         # Exposes REST endpoints for Fund resources
+    │   │   │   ├── dto/                                            # Web transport contracts (HTTP Request & Response payloads)
+    │   │   │   │   ├── BenchmarkRequestDto.java                    # Inbound HTTP JSON payload for benchmark operations
+    │   │   │   │   ├── BenchmarkResponseDto.java                   # Outbound HTTP JSON payload for benchmark queries
+    │   │   │   │   ├── FundRequestDto.java                         # Inbound HTTP JSON payload for fund operations
+    │   │   │   │   └── FundResponseDto.java                        # Outbound HTTP JSON payload for fund queries
+    │   │   │   ├── exception/                                      # Global web-tier error interception & response formatting
+    │   │   │   │   └── GlobalExceptionHandler.java                 # Translates domain/app exceptions to RFC 7807/HTTP status codes
+    │   │   │   ├── mapper/                                         # Boundary translation between Web DTOs & Application models
+    │   │   │   │   ├── BenchmarkApiMapper.java                     # Maps Benchmark HTTP DTOs <-> Benchmark Application DTOs
+    │   │   │   │   └── FundApiMapper.java                          # Maps Fund HTTP DTOs <-> Fund Application DTOs
+    │   │   │   └── route/                                          # Centralized HTTP URL routing and path constants
+    │   │   │       └── ApiEndPoints.java                           # Immutable endpoint URI constants (e.g., base paths, versions)
     │   │   │
-    │   │   ├── application/                    # Use Case Orchestration
-    │   │   │   ├── FundApplicationService.java # Transaction boundary, coordinates Aggregates & Repos
-    │   │   │   ├── dto/                        # Command & Query DTOs (e.g., CreateFundCommand)
-    │   │   │   └── event/                      # Application Event Listeners (e.g., RabbitMQ event consumers)
+    │   │   ├── application/                                        # Use Case Orchestration Layer (Application Services)
+    │   │   │   ├── dto/                                            # Cross-layer data carriers decoupled from transport & persistence
+    │   │   │   │   ├── BaseDto.java                                # Shared audit/metadata base DTO contract
+    │   │   │   │   ├── BenchmarkDto.java                           # Application-level benchmark transfer model
+    │   │   │   │   └── FundDto.java                                # Application-level fund transfer model
+    │   │   │   └── service/                                        # Application use case workflows & transaction management
+    │   │   │       ├── BenchmarkService.java                       # Orchestrates benchmark use cases & coordinates repositories
+    │   │   │       └── FundService.java                            # Orchestrates fund lifecycle workflows & transaction boundaries
     │   │   │
-    │   │   ├── infrastructure/                 # Frameworks, Database, and Broker Integrations
-    │   │   │   ├── persistence/                # Database Implementation
-    │   │   │   │   ├── entity/                 # JPA @Entity models (FundJpaEntity.java)
-    │   │   │   │   ├── repository/             # Spring Data JpaRepository interfaces
-    │   │   │   │   ├── adapter/                # FundRepositoryImpl (implements domain/repository/FundRepository)
-    │   │   │   │   └── mapper/                 # Entity <-> Domain Model mapping functions
-    │   │   │   ├── messaging/                  # RabbitMQ Publishers & Outbox dispatchers
-    │   │   │   └── config/                     # Spring @Configuration (RabbitMQ, DataSource, Security)
+    │   │   ├── domain/                                             # Pure Business Logic Core (Framework-free, zero Spring/JPA)
+    │   │   │   ├── benchmark/                                      # Benchmark Bounded Feature / Aggregate Slice
+    │   │   │   │   ├── model/                                      # Benchmark Domain Entities & Aggregate Roots
+    │   │   │   │   │   └── Benchmark.java                          # Benchmark Aggregate Root (enforces invariants & identity)
+    │   │   │   │   ├── repository/                                 # Pure Java Outbound Ports (Domain Repository Interfaces)
+    │   │   │   │   │   └── BenchmarkRepository.java                # Domain contract for Benchmark persistence operations
+    │   │   │   │   └── valueobject/                                # Immutable Value Objects with self-validation
+    │   │   │   │       └── BenchmarkMetadata.java                  # Benchmark provider, asset class, and regulatory metadata
+    │   │   │   ├── fund/                                           # Fund Bounded Feature / Aggregate Slice
+    │   │   │   │   ├── model/                                      # Fund Domain Entities & Aggregate Roots
+    │   │   │   │   │   └── Fund.java                               # Fund Aggregate Root (enforces portfolio & fund business invariants)
+    │   │   │   │   ├── repository/                                 # Pure Java Outbound Ports (Domain Repository Interfaces)
+    │   │   │   │   │   └── FundRepository.java                     # Domain contract for Fund persistence operations
+    │   │   │   │   └── valueobject/                                # Immutable Value Objects with self-validation
+    │   │   │   │       └── Ticker.java                             # Validated ticker symbol value object
+    │   │   │   └── exception/                                      # Core domain-specific business rule violation exceptions
+    │   │   │       ├── BenchmarkAbsentException.java               # Thrown when a required benchmark aggregate does not exist
+    │   │   │       └── FundAbsentException.java                    # Thrown when a requested fund aggregate is not found
     │   │   │
-    │   │   └── api/                            # REST Delivery Mechanism
-    │   │       ├── FundController.java         # @RestController endpoints
-    │   │       ├── dto/                        # HTTP Request & Response payloads
-    │   │       ├── mapper/                     # HTTP DTO <-> Application DTO mappers
-    │   │       └── exception/                  # @RestControllerAdvice global error handlers
+    │   │   └── infrastructure/                                     # Secondary/Outbound Driven Adapters (Technical Implementations)
+    │   │       ├── config/                                         # Spring framework configuration classes
+    │   │       │   ├── OpenApiConfig.java                          # Swagger/OpenAPI documentation bean definitions
+    │   │       │   └── PersistenceConfig.java                      # JPA, TransactionManager, and Auditing configurations
+    │   │       └── persistence/                                    # Relational database infrastructure implementation
+    │   │           ├── benchmark/                                  # Benchmark persistence slice (Table models & Adapters)
+    │   │           │   ├── BenchmarkJpaEntity.java                 # JPA @Entity mapping to database table (surrogate keys, columns)
+    │   │           │   ├── BenchmarkRepositoryAdapter.java         # Adapter implementing domain BenchmarkRepository port
+    │   │           │   └── SpringDataBenchmarkRepository.java      # Spring Data JpaRepository for Benchmark database queries
+    │   │           ├── fund/                                       # Fund persistence slice (Table models & Adapters)
+    │   │           │   ├── FundJpaEntity.java                      # JPA @Entity mapping to analytics.fund_master table
+    │   │           │   ├── FundRepositoryAdapter.java              # Adapter implementing domain FundRepository port
+    │   │           │   └── SpringDataFundRepository.java           # Spring Data JpaRepository for Fund database queries
+    │   │           └── mapper/                                     # ORM translation between JPA Entities & Domain Aggregates
+    │   │               ├── BenchmarkPersistenceMapper.java         # Maps BenchmarkJpaEntity <-> Benchmark domain aggregate
+    │   │               └── FundPersistenceMapper.java              # Maps FundJpaEntity <-> Fund domain aggregate
     │   │
-    │   └── resources/                          # Standard classpath resource directory
-    │       ├── application.yml                 # Shared baseline configuration
-    │       ├── application-local.yml           # Local development overrides
-    │       └── application-prod.yml            # Docker container deployment configuration
+    │   └── resources/                                              # Runtime configuration and application assets
+    │       ├── application.yaml                                    # Baseline configuration (DB connections, port, profiles)
+    │       └── application-local.yaml                              # Local developer profile overrides (Testcontainers, debug logs)
     │
-    └── test/                                   # Standard test source root
-        ├── java/funds/
-        │   ├── domain/                         # Fast unit tests for Aggregates & Value Objects
-        │   ├── application/                    # Mocked tests for Application Services
-        │   ├── api/                            # Controller slice tests (@WebMvcTest)
-        │   └── infrastructure/                 # Integration tests with Testcontainers
-        └── resources/
-            └── application-test.yml            # Isolated test properties
+    └── test/                                                       # Test Suite mirroring production layer hierarchy
+        └── java/sec/financials/
+            ├── FundServiceApplicationTests.java                    # Context loads integration verification test
+            │
+            ├── api/                                                # Presentation-tier tests
+            │   ├── controller/                                     # Web slice tests (@WebMvcTest mocking application services)
+            │   │   ├── BenchmarkControllerTest.java                # HTTP validation, status code, & serialization tests for benchmarks
+            │   │   └── FundControllerTest.java                     # HTTP validation, status code, & serialization tests for funds
+            │   └── exception/                                      # Controller advice validation tests
+            │
+            ├── application/                                        # Application-tier unit & orchestration tests
+            │   ├── dto/                                            # Serialization/deserialization and immutability tests for DTOs
+            │   │   ├── BenchmarkRequestDtoTest.java
+            │   │   ├── BenchmarkResponseDtoTest.java
+            │   │   ├── FundRequestDtoTest.java
+            │   │   └── FundResponseDtoTest.java
+            │   └── service/                                        # Application service tests (mocking domain repositories)
+            │       ├── BenchmarkServiceTest.java                   # Orchestration, mapping, and use-case verification for benchmarks
+            │       └── FundServiceTest.java                        # Orchestration, mapping, and use-case verification for funds
+            │
+            ├── domain/                                             # Fast, framework-free unit tests for core business rules
+            │   ├── benchmark/                                      # Benchmark aggregate and domain logic verification
+            │   │   ├── model/
+            │   │   │   └── BenchmarkTest.java                      # Aggregate business invariant and lifecycle tests
+            │   │   ├── repository/
+            │   │   │   └── BenchmarkRepositoryTest.java            # Contract tests for BenchmarkRepository interfaces
+            │   │   └── valueobject/
+            │   │       └── BenchmarkMetadataTest.java              # Value object equality, immutability, and validation tests
+            │   └── fund/                                           # Fund aggregate and domain logic verification
+            │       ├── model/
+            │       │   └── FundTest.java                           # Aggregate business invariant and mutation tests
+            │       ├── repository/
+            │       │   └── FundRepositoryTest.java                 # Contract tests for FundRepository interfaces
+            │       └── valueobject/
+            │           └── TickerTest.java                         # Ticker formatting, character constraints, and equality tests
+            │
+            └── infrastructure/                                     # Integration tests for external infrastructure components
+                ├── config/                                         # Spring context and configuration verification tests
+                └── persistence/                                    # Database integration tests (@DataJpaTest / Testcontainers)
 ```
