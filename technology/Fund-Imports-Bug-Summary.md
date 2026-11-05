@@ -63,3 +63,13 @@ must return exactly 0.
 ##### **BUG-ST-02**: Inverted Tier Resolution Causing False Active Classification
    - **Root Cause**: Running narrative compliance rules before fund name heuristics caused passive index funds (e.g., ```text Vanguard 500 Index Fund```) to classify as ```text ACTIVE``` because prospectus narratives describe how index providers (e.g., ```text S&P```) "```text actively maintain and reconstitute```" the index.
    - **Regression Assertion**: Tier 1 Fund Name heuristics (```text Index Fund```, ```text Idx ETF```) must take precedence over general narrative text matching.
+
+##### **BUG-ST-03**: Benchmark Member Name Contaminating Legal Fund Name
+- Severity: Critical
+- Symptom: A fund’s fundName contains a benchmark title or ends in [Member] (e.g., "S000079470 MSCI All Country World Index net [Member]").
+- Root Cause: SQL join in AnalyticsRepository.findFundNamesByTag joins on numeric_facts.tag or dimension members without filtering to dei:LegalEntityAxis / dei:EntityDomain, causing benchmark measure labels from rr:PerformanceMeasureAxis to overwrite series titles.
+
+##### **BUG-ST-04** : False Passive Stamping on Explicitly Active Narratives
+- Severity: High
+- Symptom: A fund whose narrative begins with "The Fund is an actively managed..." is classified as PASSIVE.
+- Root Cause: Tier 1 fundName heuristics short-circuit before verifying whether the narrative explicitly declares active ETF status.
